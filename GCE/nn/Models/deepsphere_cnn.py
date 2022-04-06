@@ -29,7 +29,7 @@ class DeepsphereCNN:
         with self._strategy.scope():
             # Define the input tensor
             input_tensor = tf.keras.Input(shape=(self._p.nn["input_shape"]))
-
+            print(self._p.nn["input_shape"])
             tau = None
             outdict = {}
 
@@ -38,26 +38,28 @@ class DeepsphereCNN:
                 model_ff = HealpyGCNN(which="flux_fractions", params=self._p, index_dict=self._index_dict)
                 model_ff_outdict, preprocessed_input = model_ff.compute_output(input_tensor=input_tensor)
                 outdict = {**outdict, **model_ff_outdict}
-
+                print(preprocessed_input.shape)
+                print("ff_mean")
+                print(model_ff_outdict["ff_mean"].shape)
             # SCD histogram submodel
-            if self._p.nn.hist["return_hist"]:
-                hist_nn_input = input_tensor
-                # Feed residual as a second channel?
-                if self._p.nn.ff["return_ff"] and self._p.nn.hist["calculate_residual"]:
-                    # Get input maps after removing best-fit Poissonian emission
-                    poissonian_residual = PoissonResidualLayer(self._p, self._template_dict)([
-                        preprocessed_input, model_ff_outdict["ff_mean"]])
-                    # in this case: feed input_tensor with Poissonian residual
-                    hist_nn_input = tf.concat([tf.expand_dims(input_tensor, 2),
-                                               tf.expand_dims(poissonian_residual, 2)], axis=2)  # 2nd channel: residual
-
-                # Define tau input tensor here:
-                if self._p.train["hist_loss"].upper() == "EMPL":
-                    tau = tf.keras.Input(shape=1)
-
-                model_hist = HealpyGCNN(which="histograms", params=self._p, index_dict=self._index_dict)
-                model_hist_outdict, _ = model_hist.compute_output(input_tensor=hist_nn_input, tau=tau)
-                outdict = {**outdict, **model_hist_outdict}
+            # if self._p.nn.hist["return_hist"]:
+            #     hist_nn_input = input_tensor
+            #     # Feed residual as a second channel?
+            #     if self._p.nn.ff["return_ff"] and self._p.nn.hist["calculate_residual"]:
+            #         # Get input maps after removing best-fit Poissonian emission
+            #         poissonian_residual = PoissonResidualLayer(self._p, self._template_dict)([
+            #             preprocessed_input, model_ff_outdict["ff_mean"]])
+            #         # in this case: feed input_tensor with Poissonian residual
+            #         hist_nn_input = tf.concat([tf.expand_dims(input_tensor, 2),
+            #                                    tf.expand_dims(poissonian_residual, 2)], axis=2)  # 2nd channel: residual
+            #
+            #     # Define tau input tensor here:
+            #     if self._p.train["hist_loss"].upper() == "EMPL":
+            #         tau = tf.keras.Input(shape=1)
+            #
+            #     model_hist = HealpyGCNN(which="histograms", params=self._p, index_dict=self._index_dict)
+            #     model_hist_outdict, _ = model_hist.compute_output(input_tensor=hist_nn_input, tau=tau)
+            #     outdict = {**outdict, **model_hist_outdict}
 
             assert len(outdict) > 0, "Nothing to predict: neither flux fractions nor SCD histograms have been selected!"
 
@@ -69,6 +71,7 @@ class DeepsphereCNN:
 
             # Print summary
             model.summary()
+            tf.keras.utils.plot_model(model, show_shapes=True)
 
             # Now: store trainable parameters for each submodel to enable flexible training
             trainable_weights_dict = {"ff": [], "hist": []}

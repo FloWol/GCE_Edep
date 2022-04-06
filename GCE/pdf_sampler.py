@@ -31,7 +31,10 @@ class PDFSampler:
         """
         # Random draw from a uniform, up to max of the cdf, which need
         # not be 1 as the pdf does not have to be normalised
+        #print("Psamples shape: " + str(samples.shape) + "samples: " + str(samples[:10]))
         unidraw = np.random.uniform(high=self.cdf[-1], size=samples)
         cdfdraw = np.searchsorted(self.cdf, unidraw)
         cdfdraw = self.sortxvals[cdfdraw]
         return self.xvals[cdfdraw]
+
+

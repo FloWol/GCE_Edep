@@ -115,8 +115,10 @@ def get_params(int_flag=0):
     p_data["nside"] = int(128)  # nside resolution parameter of the data
     p_data["exposure"] = "Fermi"  # one of "Fermi", "Fermi_mean", or constant integer
     p_data["psf"] = True  # if True: apply Fermi PSF to PS templates when generating PS maps
+    p_data["Ebins"] = np.array([0.1, 0.2, 0.3, 0.5, 0.8, 1.5, 10])
     # (see the function fermi_psf() in data_utils.py)
     p["data"] = p_data
+
 
     # Modeling settings
     ###################################

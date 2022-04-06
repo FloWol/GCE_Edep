@@ -105,8 +105,8 @@ class Chebyshev(Layer):
         # shapes, this fun is necessary since sparse_matmul_dense in TF only supports
         # the multiplication of 2d matrices, therefore one has to do some weird reshaping
         # this is not strictly necessary but leads to a huge performance gain...
-        # See: https://arxiv.org/pdf/1903.11409.pdf
-        N, M, Fin = input_tensor.get_shape()
+        # See:
+        N, M, Fin = input_tensor.get_shape() # N x M x Fin
         M, Fin = int(M), int(Fin)
 
         # get Fout if necessary
@@ -117,7 +117,7 @@ class Chebyshev(Layer):
 
         # Transform to Chebyshev basis
         x0 = tf.transpose(input_tensor, perm=[1, 2, 0])  # M x Fin x N
-        x0 = tf.reshape(x0, [M, -1])  # M x Fin*N
+        x0 = tf.reshape(x0, [M, -1])  # M x Fin*N #Ask wie mit Ebins
 
         # list for stacking
         stack = [x0]
@@ -147,6 +147,7 @@ class Chebyshev(Layer):
 
         if self.activation is not None:
             x = self.activation(x)
+
 
         return x
 

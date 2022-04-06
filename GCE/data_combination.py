@@ -287,7 +287,7 @@ def combine_template_maps(save_filenames, params, job_id=None, train_range=None,
             data_out = dict()
             combined_map = np.int32(0)
 
-            for i_temp, temp in enumerate(t_p + t_ps):
+            for i_temp, temp in enumerate(t_p + t_ps): #here starts the combination
                 total_flux_dict[temp] = 0.0
                 is_add_two = temp in add_two_temps_ps
                 repeat_range = [0, 1] if is_add_two else [0]
@@ -298,7 +298,8 @@ def combine_template_maps(save_filenames, params, job_id=None, train_range=None,
                         this_file = files_dict[temp][i_file]
                     data_file = open(os.path.join(input_path, temp, this_file), 'rb')
                     temp_data = pickle.load(data_file)
-                    temp_map = temp_data["data"]  # n_maps_per_chunk x n_indices_roi
+                    temp_map = temp_data["data"]  # n_maps_per_chunk x n_indices_roi x number of energy bins
+
                     if is_add_two:
                         if rep == 0:
                             data_dict_0[temp] = temp_data
@@ -309,19 +310,24 @@ def combine_template_maps(save_filenames, params, job_id=None, train_range=None,
                         # Load data
                         data_dict[temp] = temp_data
                     # If PS map with second channel for data without PSF: extract desired channel
-                    if len(temp_map.shape) == 3:
-                        temp_map = temp_map[:, :, i_channel_select]
+                    #if len(temp_map.shape) == 2:
+                    #   temp_map = temp_map[:, :]
+                    #    temp_map = np.expand_dims(temp,)
+                        # temp_map[:, :, i_channel_select] changed for  energy bins
+
                     # Add to combined map
                     combined_map += temp_map
                     # Calculate flux
-                    flux = temp_map / np.expand_dims(exp_indices_roi, 0)
+                    flux = temp_map / np.expand_dims(exp_indices_roi, [0, 2]) #TODO ergebnis überprüfen
                     # Total flux of template: sum over pixels
                     total_flux_dict[temp] += flux.sum(1)
+                    #print(total_flux_dict["bub"].shape) (50, 7)
 
             # Calculate flux fractions
             total_flux = np.asarray([v for k, v in total_flux_dict.items()]).sum(0)
             for temp in t_p + t_ps:
                 flux_fraction_dict[temp] = total_flux_dict[temp] / total_flux
+                #print(flux_fraction_dict["bub"].shape) #(50,7)
 
             # Write combined info
             info_dict_comb = dict()
@@ -344,11 +350,11 @@ def combine_template_maps(save_filenames, params, job_id=None, train_range=None,
 
                 info_dict_comb[key] = temp_dict
 
+
             # Store in "data_out" dictionary
-            data_out["data"] = combined_map.T
+            data_out["data"] = combined_map   #ASK why transposed? .T
             data_out["flux_fraction"] = flux_fraction_dict
             data_out["info"] = info_dict_comb
-
             # Now: compute histograms
             if do_any_hist:
                 # Helper function to get the denominator to normalise the histograms:
@@ -362,14 +368,18 @@ def combine_template_maps(save_filenames, params, job_id=None, train_range=None,
 
                 for hist_template in hist_templates:
                     is_add_two = hist_template in add_two_temps_ps
-                    dd_check = data_dict_0 if is_add_two else data_dict
+                    dd_check = data_dict_0 if is_add_two else data_dict #returns the normal data dict
                     if is_add_two:
                         assert hist_template in data_dict_0.keys(), \
                             "Histogram template " + hist_template + " not found!"
                     else:
                         assert hist_template in data_dict.keys(), \
                             "Histogram template " + hist_template + " not found!"
-                    n_maps_per_file = dd_check[hist_template]["data"].shape[0]
+                    #print(dd_check[hist_template]["data"].shape)
+                    #print(dd_check[hist_template].keys())
+                    #(50, 7749, 7)
+                    #dict_keys(['data', 'info', 'n_phot', 'flux_arr'])
+                    n_maps_per_file = dd_check[hist_template]["data"].shape[0] #sollte eher 2 sein? Nein da data_dict nicht transposed ist nur data_out
                     data_out["hists"][hist_template] = dict()
 
                     # dNdF histogram
@@ -377,8 +387,8 @@ def combine_template_maps(save_filenames, params, job_id=None, train_range=None,
                         if "flux_arr" not in dd_check[hist_template].keys():
                             raise RuntimeError("Error! GCE PS data does NOT contain lists with flux array! Aborting...")
                         if is_add_two:
-                            hist_input = [np.hstack([data_dict_0[hist_template]["flux_arr"][i],
-                                                     data_dict_1[hist_template]["flux_arr"][i]])
+                            hist_input = [np.hstack([data_dict_0[hist_template]["flux_arr"][i],   #hier clash? #flux array ist return von make_map und dort imput entweder der ist schon Edep oder ma muss da noch einen machen
+                                                     data_dict_1[hist_template]["flux_arr"][i]])    #flux array selber ist (noch) nicht edep
                                             for i in range(n_maps_per_file)]
                         else:
                             hist_input = data_dict[hist_template]["flux_arr"]
@@ -407,17 +417,17 @@ def combine_template_maps(save_filenames, params, job_id=None, train_range=None,
 
                     # counts per pixel histogram
                     if do_counts_per_pix:
-                        if len(dd_check[hist_template]["data"].shape) != 3:
+                        if len(dd_check[hist_template]["data"].shape) != 3: #a bit obsolete
                             raise RuntimeError("Error! Data does NOT contain second channel"
                                                " with map before PSF application! Aborting...")
                         if is_add_two:
                             hist_input = np.stack([data_dict_0[hist_template]["data"],
-                                                   data_dict_1[hist_template]["data"]], 3).sum(3)
+                                                   data_dict_1[hist_template]["data"]], 3).sum(3)  #NOTE 3rd axis should still be fine since this is the energy row
                         else:
                             hist_input = data_dict[hist_template]["data"]
-                        counts_per_pix_hist = np.asarray([np.histogram(hist_input[i, :, 1], weights=hist_input[i, :, 1],
+                        counts_per_pix_hist = np.asarray([np.histogram(hist_input[i, :, :], weights=hist_input[i, :, :], #pfusch hier von 1 auf : im letzten eintrag
                                                                        bins=bins_counts_per_pix)[0]
-                                                          for i in range(n_maps_per_file)])
+                                                          for i in range(n_maps_per_file)]) #TODO here is some juciy stuff #counts per pix oder daraus ein counts per pix per energy machen
                         counts_per_pix_hist_sum = counts_per_pix_hist.sum(1)
                         data_out["hists"][hist_template]["counts_per_pix"] \
                             = counts_per_pix_hist / np.expand_dims(get_denominator(counts_per_pix_hist_sum), -1)

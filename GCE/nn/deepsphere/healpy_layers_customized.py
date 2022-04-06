@@ -491,9 +491,9 @@ class FinalLayer(Layer):
             raise NotImplementedError
 
         if last_act == "softmax":
-            self.activation = lambda x: tf.nn.softmax(x, axis=1)
+            self.activation = lambda x: tf.nn.softmax(x, axis=2) #ASK wir wollen (batch,3,Ebin) also -1 bzw 2 statt 1
         elif last_act == "normalized_softplus":
-            self.activation = lambda x: normalized_softplus(x, axis=1)
+            self.activation = lambda x: normalized_softplus(x, axis=2)
         else:
             raise NotImplementedError
 
@@ -505,7 +505,9 @@ class FinalLayer(Layer):
         :param kwargs: further keyword arguments
         :return: the output of the layer
         """
+
         x = input_tensor
+
         output_dict = {}
 
         # Flux fraction submodel:
@@ -554,7 +556,7 @@ class PoissonResidualLayer(Layer):
         self.counts2flux_roi_arr = np.asarray([temp_dict["counts_to_flux_ratio_roi"][temp]
                                                for temp in params.mod["models"]]).astype(np.float32)
 
-        self.rescale_compressed_f32_exp = tf.expand_dims(temp_dict["rescale_compressed"].astype(np.float32), 0)
+        self.rescale_compressed_f32_exp = tf.expand_dims(temp_dict["rescale_compressed"].astype(np.float32), -1) #Pfusch ursprünglich 0 und nicht -1
 
     def call(self, inputs, *args, **kwargs):
         """
@@ -569,7 +571,7 @@ class PoissonResidualLayer(Layer):
         preprocessed_input_maps, ff_mean = inputs
 
         # Only 1 channel: squeeze
-        preprocessed_input_maps = tf.squeeze(preprocessed_input_maps, 2)
+        #preprocessed_input_maps = tf.squeeze(preprocessed_input_maps, 2)
 
         # From flux fractions, get count fractions
         ff_sum = tf.reduce_sum(ff_mean, 1, keepdims=True)
@@ -582,8 +584,9 @@ class PoissonResidualLayer(Layer):
         else:  # if count maps are shown to the NN, leave as it is
             count_maps = preprocessed_input_maps
 
-        total_counts = tf.reduce_sum(count_maps, 1, keepdims=True)
-        counts_per_temp = total_counts * count_fracs
+        total_counts = tf.reduce_sum(count_maps, 2, keepdims=True)#eigentlich total counts per bin (none,7749)#PFUSCH wenn nicht transponiert 2 ist energy bin ursprünglich 1
+        counts_per_temp = total_counts * count_fracs #per temp per bin
+
 
         # Get ratio between counts per template and template sum
         t_counts_rescale_fac = counts_per_temp / tf.reduce_sum(self.t_counts_compressed_arr.T.astype(np.float32),

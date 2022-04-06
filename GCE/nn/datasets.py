@@ -34,7 +34,10 @@ class Dataset(object):
         self._p = params
         self._g = generator
         rescale_compressed = self._g.settings_dict["rescale_compressed"]
-        self._rescale_compressed_expanded = np.expand_dims(rescale_compressed, 0)
+        self._rescale_compressed_expanded = np.expand_dims(rescale_compressed,  -1).astype('float32')
+        #PFUSCH orifinal war 0 astype und tf convert nicht mehr gebraucht wenn nur um 1D erweitert, wenn transponiert  -1 auf 0 setzten
+        self._rescale_compressed_expanded = tf.convert_to_tensor(self._rescale_compressed_expanded)
+        print(self._rescale_compressed_expanded.shape)
 
         # Store batch size and prefetch buffer size
         if self._g.train_val_test == 0:
@@ -66,6 +69,7 @@ class Dataset(object):
         output_signature = {"data": tf.TensorSpec(shape=self._p.nn["input_shape"], dtype=tf.float32),
                             "label": tuple(label_signature)}
 
+
         if extra_info:
             output_signature["extra_info"] = tf.TensorSpec(shape=(), dtype=tf.float32)
 
@@ -80,11 +84,11 @@ class Dataset(object):
         dataset = dataset.batch(self.bs)
         if self._prefetch_buffer > 0:
             dataset = dataset.prefetch(self._prefetch_buffer)
-
         # Correct for exposure correction?
         if self._p.nn["remove_exp"]:
             def remove_exp(ds):
-                ds["data"] /= self._rescale_compressed_expanded
+
+                ds["data"] = ds["data"] / self._rescale_compressed_expanded
                 return ds
 
             dataset = dataset.map(remove_exp)
@@ -127,3 +131,5 @@ class Dataset(object):
         indexes_top = self._g.settings_dict["indices_roi"]
         rescale_compressed = self._g.settings_dict["rescale_compressed"]
         return get_fermi_counts(self._p, indexes_top=indexes_top, rescale_compressed=rescale_compressed)
+
+

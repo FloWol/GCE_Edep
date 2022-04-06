@@ -6,6 +6,13 @@
 import numpy as np
 import healpy as hp
 import scipy.stats as stats
+from .pdf_sampler import PDFSampler
+
+
+
+
+def energy_distribution(E, Eparam):
+    return np.ones_like(E) #E ** Eparam[0]
 
 
 # Random upscaling:
@@ -46,7 +53,7 @@ def random_u_grade_ang(m_inds, nside_in=0, nside_out=16384, is_nest=False):
     return th_out, ph_out
 
 
-def run(flux_arr, temp, exp, pdf_psf_sampler, name="map", save=False, getnopsf=False, getcts=False, upscale_nside=16384,
+def run(flux_arr, temp, exp, pdf_psf_sampler, Ebins,name="map", save=False, getnopsf=False, getcts=False, upscale_nside=16384,
         verbose=False, clean_count_list=False, inds_outside_roi=None, is_nest=False):
     """
     Runs point source Monte Carlo by reading in template, source count distribution parameters, exposure
@@ -55,6 +62,7 @@ def run(flux_arr, temp, exp, pdf_psf_sampler, name="map", save=False, getnopsf=F
     :param temp: HEALPix numpy array of template
     :param exp: HEALPix numpy array of exposure map
     :param pdf_psf_sampler: user-defined PSF: object of type PDFSampler (see class above). Can be None: no PSF.
+    :param Ebins: Energy bins
     :param name: string for the name of output .npy file
     :param save: option to save map to .npy file
     :param getnopsf: return the map that would result without the PSF (as a second channel)
@@ -75,9 +83,8 @@ def run(flux_arr, temp, exp, pdf_psf_sampler, name="map", save=False, getnopsf=F
     """
 
     # Generate simulated counts map
-    map_arr, map_arr_no_psf, cts_arr, flux_arr_out = make_map(flux_arr, temp, exp, pdf_psf_sampler, upscale_nside,
+    map_arr, map_arr_no_psf, cts_arr, flux_arr_out = make_map(flux_arr, temp, exp, pdf_psf_sampler, Ebins,upscale_nside,
                                                               verbose, clean_count_list, inds_outside_roi, is_nest)
-
     # Save the file as an .npy file
     if save:
         np.save(str(name) + ".npy", np.array(map_arr).astype(np.int32))
@@ -88,6 +95,7 @@ def run(flux_arr, temp, exp, pdf_psf_sampler, name="map", save=False, getnopsf=F
     if getnopsf:
         map_arr_return = np.concatenate([np.expand_dims(np.array(map_arr).astype(np.int32), 1),
                                          np.expand_dims(np.array(map_arr_no_psf).astype(np.int32), 1)], axis=-1)
+
     else:
         map_arr_return = np.array(map_arr).astype(np.int32)
 
@@ -103,7 +111,7 @@ def run(flux_arr, temp, exp, pdf_psf_sampler, name="map", save=False, getnopsf=F
             return map_arr_return
 
 
-def make_map(flux_arr, temp, exp, pdf_psf_sampler, upscale_nside=16384, verbose=False, clean_count_list=True,
+def make_map(flux_arr, temp, exp, pdf_psf_sampler, Ebins,upscale_nside=16384, verbose=False, clean_count_list=True,
              inds_outside_roi=None, is_nest=False):
     """
     Given an array of fluxes for each source, template & exposure map, and user defined PSF, simulates and returns
@@ -117,6 +125,7 @@ def make_map(flux_arr, temp, exp, pdf_psf_sampler, upscale_nside=16384, verbose=
     :param temp: array of template: MUST BE NORMALISED TO SUM UP TO UNITY!
     :param exp: array of exposure map
     :param pdf_psf_sampler: user-defined PSF: object of type PDFSampler (see class above). Can be None (no PSF).
+    :param Ebins: Energy bins
     :param upscale_nside: nside to use for randomly determining the PS location *within* each pixel
     :param verbose: print when starting
     :param clean_count_list:
@@ -148,15 +157,16 @@ def make_map(flux_arr, temp, exp, pdf_psf_sampler, upscale_nside=16384, verbose=
     num_phot_in_roi = np.asarray([])
 
     # Initialise the map
-    map_arr = np.zeros(npix, dtype=np.int32)
-    map_arr_no_psf = np.zeros(npix, dtype=np.int32)
+
+    map_arr = np.zeros((npix, len(Ebins)-1), dtype=np.int32)
+    map_arr_no_psf = np.zeros((npix, len(Ebins)-1), dtype=np.int32)
 
     if verbose:
         print("Simulating counts maps ...")
 
     # Check that template is normalised such that it sums up to unity.
     # Do NOT allow to normalise within this function because of parallelisation (could change template in memory)
-    assert(np.abs(np.sum(temp) - 1) < 1e-5), "Template is not normalised!"
+    assert (np.abs(np.sum(temp) - 1) < 1e-5), "Template is not normalised!"
 
     # Draw pixel positions of the PSs and get an array with the (possibly multiple) indices
     inds_ps_bool = stats.multinomial.rvs(p=temp, n=n)  # boolean array: inds_PS_bool.sum() == n
@@ -195,6 +205,20 @@ def make_map(flux_arr, temp, exp, pdf_psf_sampler, upscale_nside=16384, verbose=
 
     # Get array containing the pixel of each count before applying the PSF
     pix_counts = np.repeat(pix_ps, num_phot)
+    #print("Pix:counts shape: " + str(pix_counts.shape) + "Pixcounts: " + str(pix_counts[:10]))
+    #print("phot shape: " + str(num_phot.shape) + "phot: " + str(num_phot[:10]))
+
+    ##################################################################
+    # Do an Energy sampling for every pixel in pixel_counts right here
+    E = np.linspace(float(Ebins[0]), float(Ebins[len(Ebins) - 1]), 1000000, endpoint=False)
+    Eparam = [-2.2]
+    pdf_E = energy_distribution(E, Eparam)
+    pdf_E_samp = PDFSampler(E, pdf_E)
+    #print(len(pix_counts))
+    E = pdf_E_samp(pix_counts.size)
+    Eind = np.digitize(E, Ebins)
+
+    # How to deal with PSF?
 
     # if no PSF:
     if pdf_psf_sampler is None:
@@ -253,7 +277,7 @@ def make_map(flux_arr, temp, exp, pdf_psf_sampler, upscale_nside=16384, verbose=
                 reverse_repeat = np.cumsum(num_phot) - 1
                 # Find PSs from which counts have leaked outside of the ROI (PSs may be contained multiple times)
                 leaked_ps = np.asarray([np.argmax(ind_rep <= reverse_repeat)
-                                         for ind_rep in counts_leaked_outside_roi]).flatten()
+                                        for ind_rep in counts_leaked_outside_roi]).flatten()
                 # Check that the PS indices refer to the same pixels as the global count indices
                 assert np.all(pix_counts[counts_leaked_outside_roi] == pix_ps[leaked_ps]), \
                     "Count removal went wrong! Aborting!"
@@ -271,8 +295,11 @@ def make_map(flux_arr, temp, exp, pdf_psf_sampler, upscale_nside=16384, verbose=
                 flux_arr_return = flux_arr
 
     # Add all the counts: note: use "at" such that multiple counts in a pixel are added
-    np.add.at(map_arr, posit, int(1))  # pixels AFTER PSF
-    np.add.at(map_arr_no_psf, pix_counts, int(1))  # pixels BEFORE PSF
+
+    np.add.at(map_arr, (posit, Eind-1), int(1))  # pixels AFTER PSF
+    np.add.at(map_arr_no_psf, (pix_counts, Eind-1), int(1))  # pixels BEFORE PSF
 
     # Return map, map before PSF, and num_phot_cleaned
     return map_arr, map_arr_no_psf, num_phot_cleaned, flux_arr_return
+
+#TODO energie in PSF einbauentemplatespower law für jedes template

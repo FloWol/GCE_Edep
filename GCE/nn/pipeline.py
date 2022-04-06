@@ -8,6 +8,8 @@ def build_pipeline(params):
     :param params: parameter dictionary
     :return: generator and dataset objects for training, validation, and testing data (saved in a dictionary)
     """
+    #print(params)
+
     generators = dict()
     generators["train"] = PairGeneratorCNNPreGenerated(params, 0)
     generators["val"] = PairGeneratorCNNPreGenerated(params, 1, settings_dict=generators["train"].settings_dict)

@@ -102,7 +102,7 @@ class PairGeneratorCNNPreGenerated(PairGenerator):
                         sys.exit(1)
 
                 # If end of a file
-                elif self._index_in_array == self._data_dict["data"].shape[1]:
+                elif self._index_in_array == self._data_dict["data"].shape[0]: #PFUSCH 0 oder 2 wenn nicht transp
                     self._index_in_array = 0
                     self._file_no += 1
                     # If through all files: start at file 0
@@ -126,17 +126,18 @@ class PairGeneratorCNNPreGenerated(PairGenerator):
                 labels = [None] * n_labels
 
                 # Calculate FFs (if exposure correction is removed, this is the fraction of flux rather than the counts)
-                labels[0] = np.asarray([self._data_dict["flux_fraction"][key][self._index_in_array]
+                labels[0] = np.asarray([self._data_dict["flux_fraction"][key][self._index_in_array] #flux fraction per energybin per template per map (3,7)
                                         for key in self._p.mod["models"]])
 
-                template_map_counts = self._data_dict["data"][:, self._index_in_array]
+
+                template_map_counts = self._data_dict["data"][self._index_in_array, :, :] #TODO array mit batches
                 new_array = template_map_counts
 
                 # Get histogram
                 if self._p.nn.hist["return_hist"]:
                     try:
                         hict_scd = np.asarray([self._data_dict["hists"][temp]
-                                               [self._p.nn.hist["which_histogram"]][self._index_in_array, :]
+                                               [self._p.nn.hist["which_histogram"]][self._index_in_array, :] #TODO understand this
                                                for temp in self._p.nn.hist["hist_templates"]]).T
                     except KeyError as e:
                         print("No histogram data found or histogram data corrupted! Aborting...")

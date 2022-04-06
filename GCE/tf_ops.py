@@ -42,8 +42,8 @@ def split_mean_var(output, mean_act, k):
     :return: mean, log variances
     """
     assert k > 0, "k must be positive!"
-    assert output.shape[1] == k * 2, "Aleatoric uncertainty estimation: wrong input shape!"
-    mean = mean_act(output[:, :k])
+    #assert output.shape[1] == k * 2, "Aleatoric uncertainty estimation: wrong input shape!"
+    mean = mean_act(output[:, :k,:6]) #TODO EBINS 
     logvar = output[:, k:]
     return mean, logvar
 
@@ -63,7 +63,7 @@ def split_mean_cov(output, mean_act, k, alpha=0.05, eps=1e-4, norm_const=1.0):
     """
     assert k > 0, "k must be positive!"
     assert output.shape[1] == (k * (k + 3) // 2), "Covariance estimation: wrong input shape!"
-    mean = mean_act(output[:, :k])
+    mean = mean_act(output[:, :k, : 6]) #TODO 6 becomes EBINS #ASK warum nur bis k wieso nicht gleich alles?
     var = tf.math.exp(norm_const * output[:, k:2 * k])
     var_mat = tf.math.sqrt(tf.matmul(tf.expand_dims(var, 2), tf.expand_dims(var, 1)))
 
