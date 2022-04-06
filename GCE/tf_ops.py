@@ -43,8 +43,8 @@ def split_mean_var(output, mean_act, k):
     """
     assert k > 0, "k must be positive!"
     #assert output.shape[1] == k * 2, "Aleatoric uncertainty estimation: wrong input shape!"
-    mean = mean_act(output[:, :k,:6]) #TODO EBINS 
-    logvar = output[:, k:]
+    mean = mean_act(output[:, :k, :]) #TODO EBINS
+    logvar = output[:, k:, :]
     return mean, logvar
 
 
@@ -61,6 +61,7 @@ def split_mean_cov(output, mean_act, k, alpha=0.05, eps=1e-4, norm_const=1.0):
     :param norm_const: scaling of variance variables
     :return: mean, covariance matrix
     """
+    raise NotImplementedError
     assert k > 0, "k must be positive!"
     assert output.shape[1] == (k * (k + 3) // 2), "Covariance estimation: wrong input shape!"
     mean = mean_act(output[:, :k, : 6]) #TODO 6 becomes EBINS #ASK warum nur bis k wieso nicht gleich alles?

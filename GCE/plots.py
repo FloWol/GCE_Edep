@@ -7,7 +7,7 @@ import healpy as hp
 import colorcet as cc
 
 
-def plot_flux_fractions(params, true_ffs, preds, nptfit_ffs=None, out_file="ff_error_plot.pdf", legend=None,
+def plot_flux_fractions_Ebin(params, true_ffs, preds, nptfit_ffs=None, out_file="ff_error_plot.pdf", legend=None,
                         show_stripes=True, show_stats=True, delta_y=0, marker="^", marker_nptf="o", ms=8, ms_nptfit=6,
                         alpha=0.4, lw=0.8, lw_nptfit=1.6, ecolor=None, ticks=None, figsize=None):
     """
@@ -55,20 +55,26 @@ def plot_flux_fractions(params, true_ffs, preds, nptfit_ffs=None, out_file="ff_e
 
     if legend is None:
         legend = True if nptfit_ffs is not None else False
-        
-    n_col = max(int(np.ceil(np.sqrt(n_models))), 1)
-    n_row = int(np.ceil(n_models / n_col))
+
+    # n_col = max(int(np.ceil(np.sqrt(n_models))), 1)
+    # n_row = int(np.ceil(n_models / n_col))
+
+    n_col = 6 #PFUSCH hardcoded ebins
+    n_row = n_models
 
     if figsize is None:
         figsize = (n_col * 3.5, n_row * 3.25)
-    
+
     if ticks is None:
         ticks = [0, 0.2, 0.4, 0.6, 0.8]
     x_ticks = y_ticks = ticks
 
     # Calculate errors
-    mean_abs_error = np.mean(np.abs(pred_ffs - true_ffs), 0)
-    max_abs_error = np.max(np.abs(pred_ffs - true_ffs), 0)
+    mean_abs_error_temp_Ebin = np.mean(np.abs(pred_ffs - true_ffs), 0) #sum over batches
+    max_abs_error_temp_Ebin = np.max(np.abs(pred_ffs - true_ffs), 0)
+    mean_abs_error = np.mean(mean_abs_error_temp_Ebin, 1) #Sum over Ebins
+    max_abs_error = np.max(max_abs_error_temp_Ebin, 1)
+
     # q95_abs_error = np.quantile(np.abs(pred_ffs - true_ffs), .95, axis=0)
     # q99_abs_error = np.quantile(np.abs(pred_ffs - true_ffs), .99, axis=0)
 
@@ -80,7 +86,169 @@ def plot_flux_fractions(params, true_ffs, preds, nptfit_ffs=None, out_file="ff_e
 
     scat_fig, scat_ax = plt.subplots(n_row, n_col, figsize=figsize, squeeze=False, sharex="none", sharey="none")
     for i_ax, ax in enumerate(scat_ax.flatten()):
+        # if i_ax >= len(models):
+        #     continue
+        ax.plot([0, 1], [0, 1], 'k-', lw=2, alpha=0.5)
+        if show_stripes:
+            ax.fill_between([0, 1], y1=[0.05, 1.05], y2=[-0.05, 0.95], color="0.7", alpha=0.5)
+            ax.fill_between([0, 1], y1=[0.1, 1.1], y2=[-0.1, 0.9], color="0.9", alpha=0.5)
+        ax.set_aspect("equal", "box")
+
+    # true_ffs = np.sum(true_ffs, axis=2)
+    # pred_ffs = np.sum(pred_ffs, axis=2)
+    # pred_stds = np.mean(pred_stds, axis=2)
+
+    for i_ax in range(n_row): #, ax in enumerate(scat_ax.flatten(), start=0)
+        for ebin in range(0, 6):  #PFUSCH HARD CODED BINS
+            ax = scat_ax[i_ax][ebin]
+            if nptfit_ffs is not None:
+                ax.scatter(true_ffs[:, i_ax], nptfit_ffs[:, i_ax], s=ms_nptfit**2, c="1.0", marker=marker_nptf,
+                           lw=lw_nptfit, alpha=alpha, edgecolor="k", zorder=2, label="NPTFit")
+            if pred_stds is None:
+                ax.scatter(true_ffs[:, i_ax], pred_ffs[:, i_ax], s=ms**2, c=colors[i_ax], marker=marker,
+                           lw=lw, alpha=alpha, edgecolor="k", zorder=3, label="NN")
+            else:
+
+                ax.errorbar(x=true_ffs[:, i_ax, ebin], y=pred_ffs[:, i_ax, ebin], fmt=marker, ms=ms, mfc=colors[i_ax], #TODO tf reduce
+                mec="k", ecolor=ecolor or colors[i_ax], lw=lw, alpha=alpha, zorder=3, label="NN",
+                yerr=pred_stds[:, i_ax, ebin], elinewidth=2)
+            if i_ax == 0 and legend:
+                handles, labels = ax.get_legend_handles_labels()
+                ax.legend(handles[::-1], labels[::-1], frameon=True, loc='upper left', bbox_to_anchor=(0, 0.85),
+                          handletextpad=0.07, borderpad=0.25, fontsize=14)
+            if show_stats:
+                ax.text(0.62, 0.14 + delta_y, r"$\it{Mean}$", ha="center", va="center", size=12)
+                ax.text(0.62, 0.07 + delta_y, "{:.2f}%".format(mean_abs_error_temp_Ebin[i_ax, ebin] * 100), ha="center", va="center",
+                        color=colors[i_ax], size=12)
+                if nptfit_ffs is not None:
+                    ax.text(0.65, 0.10, "{:.2f}%".format(mean_abs_error_np[i_ax] * 100), ha="center", va="center", size=12)
+                ax.text(0.87, 0.14 + delta_y, r"$\it{Max}$", ha="center", va="center", size=12)
+                ax.text(0.87, 0.07 + delta_y, "{:.2f}%".format(max_abs_error_temp_Ebin[i_ax, ebin] * 100), ha="center", va="center",
+                        color=colors[i_ax], size=12)
+                if nptfit_ffs is not None:
+                    ax.text(0.87, 0.10, "{:.2f}%".format(max_abs_error_np[i_ax] * 100), ha="center", va="center", size=12)
+            ax.set_xlim([-0.02, 1.02])
+            ax.set_ylim([-0.02, 1.02])
+            if ax.get_subplotspec().is_last_row() or (i_ax + n_col >= n_models):
+                ax.set_xticks(x_ticks)
+                ax.set_xticklabels(x_ticks)
+            else:
+                ax.set_xticks([])
+            if ax.get_subplotspec().is_first_col():
+                ax.set_yticks(y_ticks)
+                ax.set_yticklabels(y_ticks)
+            else:
+                ax.set_yticks([])
+            ax.text(0.03, 0.97, model_names[i_ax], va="top", ha="left")
+
+    scat_fig.text(0.5, 0.025, "True", ha="center", va="center")
+    scat_fig.text(0.02, 0.5, "Estimated", ha="center", va="center", rotation="vertical")
+    plt.tight_layout()
+    plt.subplots_adjust(hspace=0.0, wspace=0.0)
+    plt.show()
+
+    if out_file is not None:
+        save_folder = params.nn["figures_folder"]
+        scat_fig.savefig(os.path.join(save_folder, out_file), bbox_inches="tight")
+
+    return scat_fig, scat_ax
+
+#TODO do smth about weightening vor allem beim maximum
+def plot_flux_fractions_total(params, true_ffs, preds, nptfit_ffs=None, out_file="ff_error_plot.pdf", legend=None,
+                             show_stripes=True, show_stats=True, delta_y=0, marker="^", marker_nptf="o", ms=8,
+                             ms_nptfit=6,
+                             alpha=0.4, lw=0.8, lw_nptfit=1.6, ecolor=None, ticks=None, figsize=None):
+    """
+    Make an error plot of the NN flux fraction predictions.
+    :param params: parameter dictionary
+    :param true_ffs: true flux fraction labels
+    :param preds: NN estimates (output dictionary)
+    :param nptfit_ffs: if provided: also plot NPTFit flux fractions
+    :param out_file: name of the output file
+    :param legend: show legend? by default on if NN and NPTFit fluxes are given, otherwise off
+    :param show_stripes: show the stripes indicating 5% and 10% errors?
+    :param show_stats: show stats?
+    :param delta_y: shift vertical position of the stats
+    :param marker: marker for NN estimates
+    :param marker_nptf: marker for NPTFit estimates
+    :param ms: marker size for NN estimates
+    :param ms_nptfit: marker size for NPTFit estimates
+    :param alpha: alpha for the markers
+    :param lw: linewidth for the markers
+    :param lw_nptfit: linewidth for the NPTFit markers
+    :param ecolor: error bar color
+    :param ticks: ticks
+    :param figsize: figure size
+    :return figure, axes
+    """
+    models = params.mod["models"]
+    n_models = len(models)
+    model_names = params.mod["model_names"]
+    colors = params.plot["colors"]
+
+    if not isinstance(preds, dict):
+        raise TypeError("Predictions must be a dictionary!")
+
+    if "ff_mean" not in preds.keys():
+        raise KeyError("Key 'ff_mean' not found!")
+    else:
+        pred_ffs = preds["ff_mean"].numpy()
+
+    if "ff_logvar" in preds.keys():
+        pred_stds = np.exp(0.5 * preds["ff_logvar"].numpy())
+    elif "ff_covar" in preds.keys():
+        pred_stds = np.sqrt(np.asarray([np.diag(c) for c in preds["ff_covar"].numpy()]))
+    else:
+        pred_stds = None
+
+    if legend is None:
+        legend = True if nptfit_ffs is not None else False
+
+    n_col = max(int(np.ceil(np.sqrt(n_models))), 1)
+    n_row = int(np.ceil(n_models / n_col))
+
+
+
+    if figsize is None:
+        figsize = (n_col * 3.5, n_row * 3.25)
+
+    if ticks is None:
+        ticks = [0, 0.2, 0.4, 0.6, 0.8]
+    x_ticks = y_ticks = ticks
+
+
+
+    # Calculate errors
+    mean_abs_error_temp_Ebin = np.mean(np.abs(pred_ffs - true_ffs), 0) #mean over batches
+    max_abs_error_temp_Ebin = np.max(np.abs(pred_ffs - true_ffs), 0)
+    weights = [0.1, 0.1, 0.2, 0.3, 0.7, 8.5]
+    mean_abs_error = np.average(mean_abs_error_temp_Ebin, 1, weights) #mean over Ebins #TODO delete
+    max_abs_error = np.max(max_abs_error_temp_Ebin, 1)
+    # q95_abs_error = np.quantile(np.abs(pred_ffs - true_ffs), .95, axis=0)
+    # q99_abs_error = np.quantile(np.abs(pred_ffs - true_ffs), .99, axis=0)
+
+    #Throw the bins together
+    true_ffs = np.average(true_ffs, axis=2, weights=weights) # (batch x temp x Ebin)
+    pred_ffs = np.average(pred_ffs, axis=2, weights=weights)
+    pred_stds = np.average(pred_stds, axis=2, weights=weights)
+
+
+
+
+    # true_ffs = np.sum(true_ffs, axis=2) # (batch x temp x Ebin)
+    # pred_ffs = np.sum(pred_ffs, axis=2)
+    # pred_stds = np.mean(pred_stds, axis=2)
+
+    if nptfit_ffs is not None:
+        mean_abs_error_np = np.mean(np.abs(nptfit_ffs - true_ffs), 0)
+        max_abs_error_np = np.max(np.abs(nptfit_ffs - true_ffs), 0)
+        # q95_abs_error_np = np.quantile(np.abs(nptfit_ffs - true_ffs), .95, axis=0)
+        # q99_abs_error_np = np.quantile(np.abs(nptfit_ffs - true_ffs), .99, axis=0)
+
+    scat_fig, scat_ax = plt.subplots(n_row, n_col, figsize=figsize, squeeze=False, sharex="none", sharey="none")
+    for i_ax, ax in enumerate(scat_ax.flatten()):
         if i_ax >= len(models):
+
             continue
         ax.plot([0, 1], [0, 1], 'k-', lw=2, alpha=0.5)
         if show_stripes:
@@ -88,18 +256,22 @@ def plot_flux_fractions(params, true_ffs, preds, nptfit_ffs=None, out_file="ff_e
             ax.fill_between([0, 1], y1=[0.1, 1.1], y2=[-0.1, 0.9], color="0.9", alpha=0.5)
         ax.set_aspect("equal", "box")
 
+
+
     for i_ax, ax in enumerate(scat_ax.flatten(), start=0):
         if i_ax >= len(models):
             ax.axis("off")
             continue
         if nptfit_ffs is not None:
-            ax.scatter(true_ffs[:, i_ax], nptfit_ffs[:, i_ax], s=ms_nptfit**2, c="1.0", marker=marker_nptf,
+            ax.scatter(true_ffs[:, i_ax], nptfit_ffs[:, i_ax], s=ms_nptfit ** 2, c="1.0", marker=marker_nptf,
                        lw=lw_nptfit, alpha=alpha, edgecolor="k", zorder=2, label="NPTFit")
         if pred_stds is None:
-            ax.scatter(true_ffs[:, i_ax], pred_ffs[:, i_ax], s=ms**2, c=colors[i_ax], marker=marker,
+            ax.scatter(true_ffs[:, i_ax], pred_ffs[:, i_ax], s=ms ** 2, c=colors[i_ax], marker=marker,
                        lw=lw, alpha=alpha, edgecolor="k", zorder=3, label="NN")
         else:
+
             ax.errorbar(x=true_ffs[:, i_ax], y=pred_ffs[:, i_ax], fmt=marker, ms=ms, mfc=colors[i_ax],
+                        # TODO tf reduce
                         mec="k", ecolor=ecolor or colors[i_ax], lw=lw, alpha=alpha, zorder=3, label="NN",
                         yerr=pred_stds[:, i_ax], elinewidth=2)
         if i_ax == 0 and legend:
@@ -107,7 +279,7 @@ def plot_flux_fractions(params, true_ffs, preds, nptfit_ffs=None, out_file="ff_e
             ax.legend(handles[::-1], labels[::-1], frameon=True, loc='upper left', bbox_to_anchor=(0, 0.85),
                       handletextpad=0.07, borderpad=0.25, fontsize=14)
         if show_stats:
-            ax.text(0.62, 0.14 + delta_y, r"$\it{Mean}$", ha="center", va="center", size=12)
+            ax.text(0.62, 0.14 + delta_y, r"$\it{W. Mean}$", ha="center", va="center", size=12)
             ax.text(0.62, 0.07 + delta_y, "{:.2f}%".format(mean_abs_error[i_ax] * 100), ha="center", va="center",
                     color=colors[i_ax], size=12)
             if nptfit_ffs is not None:

@@ -38,7 +38,7 @@ class HealpyGCNN:
             raise NotImplementedError
 
         self.dim_out = dim_out
-        self.dim_out_flat = np.product(dim_out)*6#TODO EBINS!!! * 2
+        self.dim_out_flat = np.product(dim_out)*6#TODO EBINS!!!
 
     def compute_output(self, input_tensor, tau=None):
         """
@@ -50,11 +50,9 @@ class HealpyGCNN:
         pa = self._p.nn.arch
 
         need_concat = False  # flag indicating if 2nd(+) channel (which is NOT preprocessed!) needs to be concatenated
-        print(input_tensor)
-        print(input_tensor.shape)
+
         # If t has no channel dimension: add dimension OBSOLETE
         if len(input_tensor.shape) == 3: #Pfusch ursprünglich war input (NONE, 7749) jetzt (NONE, 7, 7749)
-            print("Input shape = 3")
             first_channel = input_tensor
             #first_channel = tf.expand_dims(input_tensor, -1) #(None, 7749,1) bzw (None,7,7749,1) not needed anymore since we already got a channel
         # else:
@@ -64,14 +62,10 @@ class HealpyGCNN:
         #         need_concat = True
         #     else:
         #         first_channel = input_tensor
-        print("first channel")
-        print(first_channel)
         # Get total counts
         tot_counts = tf.reduce_sum(first_channel, axis=2, keepdims=True) #1st axis is Energy bin Not Transposed: 2nd axis #return (None, 7749, 1) equals sum of bins per pix
         tot_counts = tf.reduce_sum(tot_counts, axis=1, keepdims=True) #real total counts einmal über ebins summiert einmal über pixel
-        print(tot_counts)
-        print("first channel")
-        print(first_channel.shape)
+
         # Relative counts (i.e., divide by total number of counts in the map)?
         rel_counts = self._p.nn.hist["rel_counts"] if self.which == "histograms" else self._p.nn.ff["rel_counts"]
         if rel_counts:
@@ -109,7 +103,7 @@ class HealpyGCNN:
                                                                        "activation": pa["activation"]})
             # Convolutional layer
             else:
-                layer_spec = conv_layer(K=pa["K"][il], Fout=pa["F"][il], use_bias=True, #TODO was ist il pa und "F"
+                layer_spec = conv_layer(K=pa["K"][il], Fout=pa["F"][il], use_bias=True,
                                         use_bn=pa["batch_norm"][il], activation=pa["activation"])
 
             # for current_nside < 4: need to reduce n_neighbors and manually set kernel_width:
@@ -129,12 +123,9 @@ class HealpyGCNN:
             sphere = SphereHealpix(**kwargs_d, subdivisions=current_nside, indexes=current_indices, nest=True,
                                    k=n_neighbors, lap_type='normalized')
             current_laplacian = sphere.L
-            print("laplacian")
-            #print(current_laplacian)
+
             t = layer_spec.get_layer(current_laplacian)(t) #t is preprocessed input
 
-            print("t shape b4 pool")
-            print(t.shape)
             # Pooling layer
             if pa["pool"] in ["max", "avg"]:
                 # Determine the pooling factor
@@ -144,8 +135,6 @@ class HealpyGCNN:
                                                         pool_type=pa["pool"].upper())(t)
             else:
                 raise NotImplementedError
-            print("t shape after pool")
-            print(t.shape)
 
         # Flatten (or if convolutions don't go all the way down to a single pixel: average over the pixels
 
@@ -175,8 +164,6 @@ class HealpyGCNN:
         # For histograms: reshape to n_batch x n_bins x n_hist_templates
         if self.which == "histograms":
             t = tf.keras.layers.Lambda(lambda x: tf.reshape(x, [tf.shape(x)[0], *self.dim_out]))(t)
-        print("tshape")
-        print(t.shape)
         # Final layer: will be taken care of when building the model
         out_dict = hp_nn.FinalLayer(which=self.which, params=self._p)(t)
 

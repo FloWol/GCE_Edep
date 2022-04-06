@@ -491,9 +491,9 @@ class FinalLayer(Layer):
             raise NotImplementedError
 
         if last_act == "softmax":
-            self.activation = lambda x: tf.nn.softmax(x, axis=2) #ASK wir wollen (batch,3,Ebin) also -1 bzw 2 statt 1
+            self.activation = lambda x: tf.nn.softmax(x, axis=1) #ASK activation über Ebins oder über templates
         elif last_act == "normalized_softplus":
-            self.activation = lambda x: normalized_softplus(x, axis=2)
+            self.activation = lambda x: normalized_softplus(x, axis=1)
         else:
             raise NotImplementedError
 
@@ -505,7 +505,6 @@ class FinalLayer(Layer):
         :param kwargs: further keyword arguments
         :return: the output of the layer
         """
-
         x = input_tensor
 
         output_dict = {}
@@ -571,12 +570,17 @@ class PoissonResidualLayer(Layer):
         preprocessed_input_maps, ff_mean = inputs
 
         # Only 1 channel: squeeze
-        #preprocessed_input_maps = tf.squeeze(preprocessed_input_maps, 2)
-
+        preprocessed_input_maps = tf.squeeze(preprocessed_input_maps, 2)
+        print(ff_mean.shape)
+        print(self.counts2flux_roi_arr.shape)
         # From flux fractions, get count fractions
-        ff_sum = tf.reduce_sum(ff_mean, 1, keepdims=True)
-        count_fracs_unnorm = ff_mean * tf.expand_dims(self.counts2flux_roi_arr, 0)
-        count_fracs = count_fracs_unnorm / (tf.reduce_sum(count_fracs_unnorm, axis=1, keepdims=True) / ff_sum)
+        ff_sum = tf.reduce_sum(ff_mean, 2, keepdims=True)
+        ff_sum = tf.reduce_sum(ff_sum, 1, keepdims=True)
+        c2f_arr=tf.expand_dims(self.counts2flux_roi_arr, 0)
+        # c2f_arr=tf.expand_dims(c2f_arr, -1)
+        count_fracs_unnorm = ff_mean * c2f_arr #TODO dim??? (?,3) -> (?,3,6)/ (1,3) -> (1,3,1)
+        print(count_fracs_unnorm.shape)
+        count_fracs = count_fracs_unnorm / (tf.reduce_sum(count_fracs_unnorm, axis=1, keepdims=True) / ff_sum) #(1,3,1)/((1,3,1)/ (None,3,6))
 
         # Get counts per template
         if self.remove_exp:  # if exposure is removed by dividing by exp / mean(exp): convert to count maps
@@ -584,7 +588,7 @@ class PoissonResidualLayer(Layer):
         else:  # if count maps are shown to the NN, leave as it is
             count_maps = preprocessed_input_maps
 
-        total_counts = tf.reduce_sum(count_maps, 2, keepdims=True)#eigentlich total counts per bin (none,7749)#PFUSCH wenn nicht transponiert 2 ist energy bin ursprünglich 1
+        total_counts = tf.reduce_sum(count_maps, 2, keepdims=True)#eigentlich total counts per bin (none,7749,1)#PFUSCH wenn nicht transponiert 2 ist energy bin ursprünglich 1
         counts_per_temp = total_counts * count_fracs #per temp per bin
 
 

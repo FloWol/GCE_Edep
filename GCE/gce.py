@@ -22,7 +22,7 @@ from .parameter_utils import get_subdict, load_params_from_pickle
 from .nn.pipeline import build_pipeline
 from .nn.Models.deepsphere_cnn import DeepsphereCNN
 from .nn import losses
-from .plots import plot_flux_fractions, plot_histograms, plot_maps
+from .plots import plot_flux_fractions_Ebin, plot_histograms, plot_maps, plot_flux_fractions_total
 
 
 class Analysis:
@@ -673,7 +673,7 @@ class Analysis:
             else:
                 nn_input = data_
             return nn_input
-
+        #PFUSCH immer nn_input[0] genommen weil mit Tau funst nicht
         # Loss helper function
         def get_loss(data_, label_, global_size, training):
             nn_input = get_nn_input(data_)
@@ -751,18 +751,17 @@ class Analysis:
                 if global_step % eval_frequency == 0:
                     # Write a checkpoint
                     manager_write.save(checkpoint_number=global_step)
-
+                    #PFUSCH tf.scalar gibts nicht
                     # Evaluate
                     with summary_writer.as_default():
-                        # tf.scalar('learning_rate', optimizer.learning_rate(global_step), step=global_step)
-                        tf.summary.scalar('losses/' + which + '/train_loss', loss_eval.numpy(), step=global_step)
+                        #tf.scalar('learning_rate', optimizer.learning_rate(global_step), step=global_step)
+                        tf.summary.scalar('losses/' + which + '/train_loss', loss_eval.numpy(), step=global_step) #pfusch flatten .flatten()
 
                         # Metrics on training data. NOTE: evaluating in "training = True" mode here
                         metric_train_eval = distributed_get_metrics(data, labels, global_size_train, training=True)
                         for i_metric, metric in enumerate(metric_list):
-
-                            tf.summary.scalar("train_metrics/" + which + '/' + metric, np.sum(metric_train_eval[i_metric]),
-                                              step=global_step)
+                             tf.summary.scalar("train_metrics/" + which + '/' + metric, np.sum(metric_train_eval[i_metric]),
+                                            step=global_step)
 
                         # Loss & metrics on (a single) validation batch
                         val_samples = next(val_iter)
@@ -773,8 +772,8 @@ class Analysis:
                         metric_val_eval = distributed_get_metrics(val_data, val_labels, global_size_val,
                                                                   training=False)
                         for i_metric, metric in enumerate(metric_list):
-                            tf.summary.scalar("val_metrics/" + which + '/' + metric, np.sum(metric_val_eval[i_metric]),
-                                              step=global_step)
+                             tf.summary.scalar("val_metrics/" + which + '/' + metric, np.sum(metric_val_eval[i_metric]), #Pfusch hier sum
+                                               step=global_step)
 
                 # Reached end of training?
                 if global_step >= num_steps:
@@ -897,7 +896,7 @@ class Analysis:
             outdict = {}
             for i_ql, ql in enumerate(tau):
                 this_ql = ql * np.ones((data.shape[0], 1))
-                this_outdict = self.nn([data, this_ql], training=training)
+                this_outdict = self.nn([data], training=training) #, this_ql PFUSCH
 
                 for k in this_outdict.keys():
                     if k in ["tau", "hist"]:
@@ -952,7 +951,7 @@ class Analysis:
         tf.keras.utils.plot_model(self.nn, show_shapes=True, to_file=os.path.join(self.p.nn["figures_folder"],
                                                                                   filename))
 
-    def plot_flux_fractions(self, true_ffs, preds, **kwargs):
+    def plot_flux_fractions_Ebin(self, true_ffs, preds, **kwargs):
         """
         Plot true vs. estimated flux fractions.
         :param true_ffs: true flux fractions
@@ -963,7 +962,20 @@ class Analysis:
         required_keys = ("mod", "nn", "plot")
         self._check_keys_exist(required_keys)
         assert self.p.nn.ff["return_ff"], "self.p.nn.ff['return_ff'] is set to False!"
-        return plot_flux_fractions(self.p, true_ffs, preds, **kwargs)
+        return plot_flux_fractions_Ebin(self.p, true_ffs, preds, **kwargs)
+
+    def plot_flux_fractions_total(self, true_ffs, preds, **kwargs):
+        """
+        Plot true vs. estimated flux fractions.
+        :param true_ffs: true flux fractions
+        :param preds: neural network prediction (output dictionary)
+        :param kwargs: will be passed on to plot_flux_fractions() in plots.py
+        :return: figure, axes
+        """
+        required_keys = ("mod", "nn", "plot")
+        self._check_keys_exist(required_keys)
+        assert self.p.nn.ff["return_ff"], "self.p.nn.ff['return_ff'] is set to False!"
+        return plot_flux_fractions_total(self.p, true_ffs, preds, **kwargs)
 
     def plot_histograms(self, true_hists, preds, **kwargs):
         """

@@ -115,7 +115,7 @@ def max_llh_loss_var(y_true, y_pred, logvar):
     precision = tf.exp(-logvar)
     term1 = err ** 2 * precision
     term2 = logvar
-    max_llh_loss = tf.reduce_sum(term1 + term2, 1) / 2.0
+    max_llh_loss = tf.reduce_sum(term1 + term2, 1) / 2.0 #Ask warum /2
     max_llh_loss = tf.reduce_sum(max_llh_loss, 1)
     return max_llh_loss
 

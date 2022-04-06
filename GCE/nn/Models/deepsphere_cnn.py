@@ -29,7 +29,6 @@ class DeepsphereCNN:
         with self._strategy.scope():
             # Define the input tensor
             input_tensor = tf.keras.Input(shape=(self._p.nn["input_shape"]))
-            print(self._p.nn["input_shape"])
             tau = None
             outdict = {}
 
@@ -38,10 +37,8 @@ class DeepsphereCNN:
                 model_ff = HealpyGCNN(which="flux_fractions", params=self._p, index_dict=self._index_dict)
                 model_ff_outdict, preprocessed_input = model_ff.compute_output(input_tensor=input_tensor)
                 outdict = {**outdict, **model_ff_outdict}
-                print(preprocessed_input.shape)
-                print("ff_mean")
-                print(model_ff_outdict["ff_mean"].shape)
-            # SCD histogram submodel
+            #TODO SCD histograms
+            #SCD histogram submodel
             # if self._p.nn.hist["return_hist"]:
             #     hist_nn_input = input_tensor
             #     # Feed residual as a second channel?
