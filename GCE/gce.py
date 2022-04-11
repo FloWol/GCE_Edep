@@ -22,7 +22,7 @@ from .parameter_utils import get_subdict, load_params_from_pickle
 from .nn.pipeline import build_pipeline
 from .nn.Models.deepsphere_cnn import DeepsphereCNN
 from .nn import losses
-from .plots import plot_flux_fractions_Ebin, plot_histograms, plot_maps, plot_flux_fractions_total
+from .plots import plot_flux_fractions_Ebin, plot_histograms, plot_maps, plot_flux_fractions_total, plot_flux_per_Ebin
 
 
 class Analysis:
@@ -976,6 +976,19 @@ class Analysis:
         self._check_keys_exist(required_keys)
         assert self.p.nn.ff["return_ff"], "self.p.nn.ff['return_ff'] is set to False!"
         return plot_flux_fractions_total(self.p, true_ffs, preds, **kwargs)
+
+    def plot_flux_per_Ebin(self, true_ffs, preds, **kwargs):
+        """
+        Plot true vs. estimated flux fractions.
+        :param true_ffs: true flux fractions
+        :param preds: neural network prediction (output dictionary)
+        :param kwargs: will be passed on to plot_flux_fractions() in plots.py
+        :return: figure, axes
+        """
+        required_keys = ("mod", "nn", "plot")
+        self._check_keys_exist(required_keys)
+        assert self.p.nn.ff["return_ff"], "self.p.nn.ff['return_ff'] is set to False!"
+        return plot_flux_per_Ebin(self.p, true_ffs, preds, **kwargs)
 
     def plot_histograms(self, true_hists, preds, **kwargs):
         """

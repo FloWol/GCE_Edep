@@ -176,6 +176,22 @@ def get_params(int_flag=0):
     p_tt["priors"] = prior_dict
     p["tt"] = p_tt
 
+    # Priors for Energy Dependence
+    Edep_dict = DotDict()
+
+    def gce_12_PS_energy(E, Eparam):
+        return np.ones_like(E)
+
+    def hin_disk_PS_energy(E, Eparam):
+        return np.ones_like(E)
+
+    def iso_PS_energy(E, Eparam):
+        return np.ones_like(E)
+
+    Edep_dict["gce_12_PS"] = gce_12_PS_energy
+    prior_dict["thin_disk_PS"] = hin_disk_PS_energy
+    prior_dict["iso_PS"] = iso_PS_energy
+
     # Settings for combining template maps
     ###################################
     p_comb = DotDict()

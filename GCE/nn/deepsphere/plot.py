@@ -134,3 +134,5 @@ def get_index_equator(nside, radius):
 
     return index_equator, center
 
+
+

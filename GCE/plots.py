@@ -5,6 +5,7 @@ from matplotlib.ticker import LogLocator
 import numpy as np
 import healpy as hp
 import colorcet as cc
+import itertools
 
 
 def plot_flux_fractions_Ebin(params, true_ffs, preds, nptfit_ffs=None, out_file="ff_error_plot.pdf", legend=None,
@@ -602,3 +603,38 @@ def plot_maps(maps, params, out_file="maps.pdf", cmap="rocket_r", plot_inds=None
     if len(out_file) > 0:
         save_folder = params.nn["figures_folder"]
         fig.savefig(os.path.join(save_folder, out_file), bbox_inches="tight")
+
+
+def plot_flux_per_Ebin(params, y_true, y_pred):
+    #TODO Ebins anzeigen lassen
+    assert y_true.shape == y_pred['ff_mean'].shape
+    Ebins = y_true.shape[2]
+
+    models = params.mod["models"]
+    n_models = len(models)
+    model_names = params.mod["model_names"]
+    colors = params.plot["colors"]
+
+    marker = itertools.cycle((',', '+', '.', 'o', '*'))
+    #loop over templates
+    for temp in range(0, y_true.shape[1]):
+        #marker = next(marker)
+        plt.scatter(range(0, Ebins), y_pred['ff_mean'][0, temp, :], marker=next(marker),
+                    label=str(params.mod["model_names"][temp])+" pred", color=colors[temp], alpha=0.5) #plot pred vals per temp
+
+        plt.scatter(range(0, Ebins), y_true[0, temp, :], marker=next(marker),
+                    label=str(params.mod["model_names"][temp])+" true", color=colors[temp], alpha=0.5) #plot true vals
+
+
+    #TODO plt axis title etc
+    #plt.title('Flux means per Ebin per Template predicted and true')
+    plt.xlabel("Energy bins")
+    plt.ylabel("Flux means")
+    plt.legend(bbox_to_anchor=(0,1.02,1,0.2), loc="lower left",
+                mode="expand",borderpad=2, ncol=y_true.shape[1],fontsize="small")
+
+    plt.show()
+
+
+
+    return
