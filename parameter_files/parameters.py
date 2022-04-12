@@ -115,7 +115,7 @@ def get_params(int_flag=0):
     p_data["nside"] = int(128)  # nside resolution parameter of the data
     p_data["exposure"] = "Fermi"  # one of "Fermi", "Fermi_mean", or constant integer
     p_data["psf"] = True  # if True: apply Fermi PSF to PS templates when generating PS maps
-    p_data["Ebins"] = np.array([0.1, 0.2, 0.3, 0.5, 0.8, 1.5, 10])
+    p_data["Ebins"] = np.array([1,2,3])#np.array([0.1, 0.2, 0.3, 0.5, 0.8, 1.5, 10])
     # (see the function fermi_psf() in data_utils.py)
     p["data"] = p_data
 
@@ -124,12 +124,12 @@ def get_params(int_flag=0):
     ###################################
     p_mod = DotDict()
     # p_mod["models_P"] = ["dif_O_pibs", "dif_O_ic", "iso", "bub"]  # list of Poissonian templates
-    p_mod["models_P"] = ["bub"]  # list of Poissonian templates
+    p_mod["models_P"] = [] #["bub"]  # list of Poissonian templates
     # p_mod["models_PS"] = ["gce_12_PS", "thin_disk_PS"]  # list of PS templates
     p_mod["models_PS"] = ["gce_12_PS", "iso_PS"]  # list of PS templates
     # Note: point-source models use the same names as the Poissonian models, but with a trailing "_PS"!
     # p_mod["model_names_P"] = [r"diffuse $\pi^0$ + BS", "diffuse IC", "isotropic", r"$\it{Fermi}$ bubbles"]  # names: P
-    p_mod["model_names_P"] = [r"$\it{Fermi}$ bubbles"]  # names: P
+    p_mod["model_names_P"] = []#[r"$\it{Fermi}$ bubbles"]  # names: P
     p_mod["model_names_PS"] = ["GCE", "isotropic PS"]  # names: PS
     p["mod"] = p_mod
 
@@ -179,18 +179,32 @@ def get_params(int_flag=0):
     # Priors for Energy Dependence
     Edep_dict = DotDict()
 
-    def gce_12_PS_energy(E, Eparam):
+    # Poissonian
+
+    def bub_energy(E):
         return np.ones_like(E)
 
-    def hin_disk_PS_energy(E, Eparam):
+    # Point sources
+    def gce_12_PS_energy(E):  # for test
+        pdf = np.zeros_like(E)
+        for index, val in enumerate(pdf[:490000]):
+            pdf[index] = 1
+        return pdf
+
+    def thin_disk_PS_energy(E):
         return np.ones_like(E)
 
-    def iso_PS_energy(E, Eparam):
-        return np.ones_like(E)
+    def iso_PS_energy(E): #for test
+        pdf=np.zeros_like(E)
+        for index, val in enumerate(pdf[510000:]):
+            pdf[index+510000] = 1
+        return pdf
 
+    Edep_dict["bub"] = bub_energy
     Edep_dict["gce_12_PS"] = gce_12_PS_energy
-    prior_dict["thin_disk_PS"] = hin_disk_PS_energy
-    prior_dict["iso_PS"] = iso_PS_energy
+    Edep_dict["thin_disk_PS"] = thin_disk_PS_energy
+    Edep_dict["iso_PS"] = iso_PS_energy
+    p["Edep"] = Edep_dict
 
     # Settings for combining template maps
     ###################################
@@ -245,7 +259,7 @@ def get_params(int_flag=0):
     p_ff["alea_covar"] = False  # if True: estimate aleatoric uncertainty covariance matrix
     p_ff["alea_var"] = True  # if True: estimate aleatoric uncertainty variances, no correlations
     p_ff["rel_counts"] = True  # scale the pixel values by the total number of counts in the map?
-    p_ff["last_act"] = "softmax"  # last activation function yielding the flux fraction mean estimates
+    p_ff["last_act"] = "normalized_softplus"  # last activation function yielding the flux fraction mean estimates
     # "softmax" or "normalized_softplus"
     p_nn["ff"] = p_ff
 

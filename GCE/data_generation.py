@@ -119,8 +119,7 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
         for chunk in range(n_chunk):
             #poissonian energy dependence part 1
             E = np.linspace(float(Ebins[0]), float(Ebins[len(Ebins) - 1]), 1000000, endpoint=False)
-            Eparam = [-2.2]
-            pdf_E = energy_distribution(E, Eparam)
+            pdf_E = params.Edep[temp](E) #template specific energy dependence
             pdf_E_samp = PDFSampler(E, pdf_E)
             # print(len(pix_counts))
 
@@ -214,7 +213,7 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
         # Define a function for the simulation of the point-source models
         @ray.remote
         def create_simulated_map(skew_, loc_, scale_, flux_lims_, enforce_upper_flux_, t_, exp_, pdf_, name_,
-                                 inds_outside_roi_, size_approx_mean_=10000, flux_log_=False):
+                                 inds_outside_roi_,Edep , size_approx_mean_=10000, flux_log_=False):
             from .ps_mc import run
             assert np.all(np.isfinite(flux_lims_)), "Flux limits must be finite!"
             max_total_flux = flux_lims_[1] if enforce_upper_flux_ else -np.infty
@@ -244,7 +243,7 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
                     n_sources = int(max(1, int(n_sources // 1.05)))
 
             # Do MC run
-            map_, n_phot_, flux_arr_out = run(np.asarray(flux_arr_), t_, exp_, pdf_, Ebins, name_, save=False,
+            map_, n_phot_, flux_arr_out = run(np.asarray(flux_arr_), t_, exp_, pdf_, Edep, Ebins, name_, save=False,
                                               getnopsf=False, #True versuchen
                                               getcts=True, upscale_nside=16384, verbose=False, is_nest=True,
                                               inds_outside_roi=inds_outside_roi_, clean_count_list=False)
@@ -255,6 +254,10 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
         for temp in t_ps:
             print("Starting with point-source model '{:}'".format(temp))
             t = temp_dict["T_flux"][temp]  # for point-sources: template after REMOVING the exposure correction is used
+
+            #Add energy dependence
+            pdf_E = params.Edep[temp]
+
 
             # Apply slightly larger mask
             t_masked = t * (1 - total_mask_neg_safety)
@@ -308,9 +311,9 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
                 sim_maps, n_phot, flux_arr = map(list, zip(*ray.get(
                     [create_simulated_map.remote(skew_draw[i_PS], mean_draw[i_PS], np.sqrt(var_draw[i_PS]),
                                                  flux_lims_corr, prior_dict[temp]["enforce_upper_flux"],
-                                                 t_final_id, exp_id, pdf_id, "map_" + temp,
+                                                 t_final_id, exp_id, pdf_id, "map_" + temp,Edep=pdf_E,
                                                  flux_log_=prior_dict[temp]["flux_log"],
-                                                 inds_outside_roi_=inds_ps_outside_roi_id)
+                                                 inds_outside_roi_=inds_ps_outside_roi_id, )
                      for i_PS in range(n_sim_per_chunk)])))
                 sim_maps = np.asarray(sim_maps)
 

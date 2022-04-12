@@ -11,8 +11,7 @@ from .pdf_sampler import PDFSampler
 
 
 
-def energy_distribution(E, Eparam):
-    return np.ones_like(E) #E ** Eparam[0]
+
 
 
 # Random upscaling:
@@ -53,7 +52,7 @@ def random_u_grade_ang(m_inds, nside_in=0, nside_out=16384, is_nest=False):
     return th_out, ph_out
 
 
-def run(flux_arr, temp, exp, pdf_psf_sampler, Ebins,name="map", save=False, getnopsf=False, getcts=False, upscale_nside=16384,
+def run(flux_arr, temp, exp, pdf_psf_sampler, Edep, Ebins,name="map", save=False, getnopsf=False, getcts=False, upscale_nside=16384,
         verbose=False, clean_count_list=False, inds_outside_roi=None, is_nest=False):
     """
     Runs point source Monte Carlo by reading in template, source count distribution parameters, exposure
@@ -83,7 +82,7 @@ def run(flux_arr, temp, exp, pdf_psf_sampler, Ebins,name="map", save=False, getn
     """
 
     # Generate simulated counts map
-    map_arr, map_arr_no_psf, cts_arr, flux_arr_out = make_map(flux_arr, temp, exp, pdf_psf_sampler, Ebins,upscale_nside,
+    map_arr, map_arr_no_psf, cts_arr, flux_arr_out = make_map(flux_arr, temp, exp, pdf_psf_sampler, Edep, Ebins,upscale_nside,
                                                               verbose, clean_count_list, inds_outside_roi, is_nest)
     # Save the file as an .npy file
     if save:
@@ -111,7 +110,7 @@ def run(flux_arr, temp, exp, pdf_psf_sampler, Ebins,name="map", save=False, getn
             return map_arr_return
 
 
-def make_map(flux_arr, temp, exp, pdf_psf_sampler, Ebins,upscale_nside=16384, verbose=False, clean_count_list=True,
+def make_map(flux_arr, temp, exp, pdf_psf_sampler, Edep, Ebins,upscale_nside=16384, verbose=False, clean_count_list=True,
              inds_outside_roi=None, is_nest=False):
     """
     Given an array of fluxes for each source, template & exposure map, and user defined PSF, simulates and returns
@@ -211,10 +210,8 @@ def make_map(flux_arr, temp, exp, pdf_psf_sampler, Ebins,upscale_nside=16384, ve
     ##################################################################
     # Do an Energy sampling for every pixel in pixel_counts right here
     E = np.linspace(float(Ebins[0]), float(Ebins[len(Ebins) - 1]), 1000000, endpoint=False)
-    Eparam = [-2.2]
-    pdf_E = energy_distribution(E, Eparam)
+    pdf_E = Edep(E)
     pdf_E_samp = PDFSampler(E, pdf_E)
-    #print(len(pix_counts))
     E = pdf_E_samp(pix_counts.size)
     Eind = np.digitize(E, Ebins)
 

@@ -6,6 +6,8 @@ This function needs to be run TWICE:
 1. save_filenames = True: saves the filenames for training and test data
 2. save_filenames = False: combines the template maps
 """
+import math
+
 import numpy as np
 import os
 import sys
@@ -326,7 +328,13 @@ def combine_template_maps(save_filenames, params, job_id=None, train_range=None,
             # Calculate flux fractions
             total_flux = np.asarray([v for k, v in total_flux_dict.items()]).sum(0)
             for temp in t_p + t_ps:
-                flux_fraction_dict[temp] = total_flux_dict[temp] / total_flux
+                #TODO Quick fix
+                flux_fraction_dict[temp] = total_flux_dict[temp] / total_flux #ASK über bins oder über bins und batches
+                for vec_ind, vec in enumerate(flux_fraction_dict[temp]):
+                    for index, bin_entry in enumerate(vec):
+                        if math.isnan(bin_entry):
+                            vec[index]=0.0
+
                 #print(flux_fraction_dict["bub"].shape) #(50,7)
 
             # Write combined info

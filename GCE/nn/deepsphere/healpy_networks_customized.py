@@ -38,7 +38,7 @@ class HealpyGCNN:
             raise NotImplementedError
 
         self.dim_out = dim_out
-        self.dim_out_flat = np.product(dim_out)*6#TODO EBINS!!!
+        self.dim_out_flat = np.product(dim_out)*2#TODO EBINS!!!
 
     def compute_output(self, input_tensor, tau=None):
         """
@@ -159,7 +159,7 @@ class HealpyGCNN:
 
         # Final fully-connected layer without activation
         t = tf.keras.layers.Dense(self.dim_out_flat, use_bias=False)(t)
-        t = tf.keras.layers.Reshape([6, 6])(t)
+        t = tf.keras.layers.Reshape([4, 2])(t)
 
         # For histograms: reshape to n_batch x n_bins x n_hist_templates
         if self.which == "histograms":
