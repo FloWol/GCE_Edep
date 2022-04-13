@@ -175,6 +175,7 @@ class Analysis:
         Add some convenient keys to the parameter dictionary that can be derived from the user-specified parameters.
         """
         nside = self.p.data["nside"]
+        self.p.data["N_bins"] = len(self.p.data["Ebins"])-1
 
         # Root folders for checkpoints, summaries, parameters, and figures
         if "gen" in self.p.keys():
@@ -226,10 +227,10 @@ class Analysis:
                 n_hist_templates = len(self.p.nn.hist["hist_templates"])
                 self.p.nn.hist["n_bins"] = len(self.p.nn.hist["nn_hist_bins"]) - 1
                 len(self.p.nn.hist["hist_templates"])
-                self.p.nn["label_shape"] = [[self.p.mod["n_models"], len(self.p.data["Ebins"])-1], [self.p.nn.hist["n_bins"], n_hist_templates]]  #PFUSCH we can set the expected label output shape? -> fluxfraction per ebin
+                self.p.nn["label_shape"] = [[self.p.mod["n_models"], self.p.data["N_bins"]], [self.p.nn.hist["n_bins"], n_hist_templates]]  #PFUSCH we can set the expected label output shape? -> fluxfraction per ebin
                 # flux fractions, SCD histograms
             else:
-                self.p.nn["label_shape"] = [[self.p.mod["n_models"]]]  # flux fractions
+                self.p.nn["label_shape"] = [[self.p.mod["n_models"], self.p.data["N_bins"]]]  # flux fractions
 
         # NN output keys
         if "nn" in self.p.keys():
@@ -519,7 +520,7 @@ class Analysis:
         for k in ["data_root", "models_root", "checkpoints_root", "summaries_root", "params_root", "figures_root"]:
             os.makedirs(self.p.gen[k], exist_ok=True)
         self.inds = build_index_dict(self.p)
-        self.p.nn["input_shape"] = (len(self.inds["indexes"][0]),len(self.p.data["Ebins"])-1)  #HERE input shape
+        self.p.nn["input_shape"] = (len(self.inds["indexes"][0]), self.p.data["N_bins"])  #HERE input shape
         self.generators, self.datasets = build_pipeline(self.p)
         print("Input pipeline successfully built.")
 
@@ -677,7 +678,8 @@ class Analysis:
         # Loss helper function
         def get_loss(data_, label_, global_size, training):
             nn_input = get_nn_input(data_)
-            return tf.reduce_sum(loss(label_, *[self.nn(nn_input[0], training=training)[k] for k in loss_keys]), 0) \
+            nn_output = self.nn(nn_input, training=training)
+            return tf.reduce_sum(loss(label_, *[nn_output[k] for k in loss_keys]), 0) \
                    / global_size
 
         # Define training step
@@ -685,6 +687,7 @@ class Analysis:
             with tf.GradientTape() as tape:
                 loss_val_ = get_loss(data_, label_, global_size, training=True)
             gradients = tape.gradient(loss_val_, weights_to_train)
+            #gradients = [tf.clip_by_value(grad, 1e-10, 1e+30) for grad in gradients]
             optimizer.apply_gradients(zip(gradients, weights_to_train))
             return loss_val_
 
@@ -694,7 +697,7 @@ class Analysis:
             nn_input = get_nn_input(data_)
             for metric, metric_keys_loc in zip(metric_list, metric_keys):
                 metric_values.append(tf.reduce_sum(metric_fct(metric)[0](label_, *[self.nn(
-                    nn_input[0], training=training)[k] for k in metric_keys_loc]), 0) / global_size)
+                    nn_input, training=training)[k] for k in metric_keys_loc]), 0) / global_size)
             return metric_values
 
         # Wrapper around get_loss that takes care of the replicas in case multiple GPUs are available
@@ -751,16 +754,15 @@ class Analysis:
                 if global_step % eval_frequency == 0:
                     # Write a checkpoint
                     manager_write.save(checkpoint_number=global_step)
-                    #PFUSCH tf.scalar gibts nicht
                     # Evaluate
                     with summary_writer.as_default():
-                        #tf.scalar('learning_rate', optimizer.learning_rate(global_step), step=global_step)
-                        tf.summary.scalar('losses/' + which + '/train_loss', loss_eval.numpy(), step=global_step) #pfusch flatten .flatten()
+                        tf.summary.scalar('learning_rate', optimizer.learning_rate(global_step), step=global_step)
+                        tf.summary.scalar('losses/' + which + '/train_loss', loss_eval.numpy(), step=global_step)
 
                         # Metrics on training data. NOTE: evaluating in "training = True" mode here
                         metric_train_eval = distributed_get_metrics(data, labels, global_size_train, training=True)
                         for i_metric, metric in enumerate(metric_list):
-                             tf.summary.scalar("train_metrics/" + which + '/' + metric, np.sum(metric_train_eval[i_metric]),
+                             tf.summary.scalar("train_metrics/" + which + '/' + metric, np.mean(metric_train_eval[i_metric]),
                                             step=global_step)
 
                         # Loss & metrics on (a single) validation batch
@@ -772,7 +774,7 @@ class Analysis:
                         metric_val_eval = distributed_get_metrics(val_data, val_labels, global_size_val,
                                                                   training=False)
                         for i_metric, metric in enumerate(metric_list):
-                             tf.summary.scalar("val_metrics/" + which + '/' + metric, np.sum(metric_val_eval[i_metric]), #Pfusch hier sum
+                             tf.summary.scalar("val_metrics/" + which + '/' + metric, np.mean(metric_val_eval[i_metric]), #Pfusch hier sum
                                                step=global_step)
 
                 # Reached end of training?
@@ -1018,7 +1020,7 @@ class Analysis:
             maps = self.decompress(maps, fill_value=np.nan)
         plot_maps(maps, self.p, **kwargs)
 
-    def decompress(self, m, fill_value=0.0): #TODO look for plotting hp.cartview
+    def decompress(self, m, fill_value=0.0):
         """
         Decompresses a map (or batch of maps).
         :param m: single compressed map, or batch of compressed maps

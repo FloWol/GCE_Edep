@@ -491,7 +491,7 @@ class FinalLayer(Layer):
             raise NotImplementedError
 
         if last_act == "softmax":
-            self.activation = lambda x: tf.nn.softmax(x, axis=1) #ASK activation über Ebins oder über templates
+            self.activation = lambda x: tf.nn.softmax(x, axis=1) #activation über templates
         elif last_act == "normalized_softplus":
             self.activation = lambda x: normalized_softplus(x, axis=1)
         else:

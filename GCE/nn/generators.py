@@ -147,6 +147,9 @@ class PairGeneratorCNNPreGenerated(PairGenerator):
 
                 # Check if conditions are satisfied (training data only)
                 ready_to_yield = True
+                #CLEANUP
+                #print(np.asarray(labels).shape)
+                #print(np.asarray(new_array).shape)
                 if self.train_val_test == 0 and (self._p.nn.cond["cond_on_training_data"] is not None
                                                  or self._p.nn.cond["cond_on_training_labels"] is not None):
                     impose_cond = self._cond_must_be_imposed \
@@ -157,6 +160,7 @@ class PairGeneratorCNNPreGenerated(PairGenerator):
                         map_cond_result = True if self._p.nn.cond["cond_on_training_data"] is None \
                             else self._p.nn.cond["cond_on_training_data"](new_array)
                         ready_to_yield = label_cond_result and map_cond_result
+                #print(self._p.nn.cond["cond_on_training_data"](new_array))
 
                 # Break
                 if ready_to_yield:

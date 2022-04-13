@@ -20,12 +20,6 @@ from .pdf_sampler import PDFSampler
 
 
 
-
-
-def energy_distribution(E, Eparam):
-    return np.ones_like(E) #** Eparam[0]
-
-
 def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job_id=0):
     """
     Generate simulated template maps for each template (output format: NESTED!)
@@ -121,7 +115,6 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
             E = np.linspace(float(Ebins[0]), float(Ebins[len(Ebins) - 1]), 1000000, endpoint=False)
             pdf_E = params.Edep[temp](E) #template specific energy dependence
             pdf_E_samp = PDFSampler(E, pdf_E)
-            # print(len(pix_counts))
 
 
             # Draw the (log) amplitude
@@ -139,12 +132,12 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
                                        for i in range(n_sim_per_chunk)])
 
             map_arr = np.zeros((n_sim_per_chunk, sim_maps[1].size, len(Ebins)-1), dtype=np.int32) # 50x7700x3
-            #print(map_arr.shape)
+
 
             #poissonian energy dependence part 2
             current_index=0
-            for i in sim_maps: #50x7700
-                #print(len(i))
+            for i in sim_maps: #7749
+
                 pix_counts = np.repeat(range(len(i)), i)
                 E = pdf_E_samp(pix_counts.size)
                 Eind = np.digitize(E, Ebins)
@@ -234,7 +227,7 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
             # Draw fluxes until total flux is in valid range
             flux_arr_ = []
             while tot_flux >= max_total_flux:
-                flux_arr_ = 10 ** stats.skewnorm.rvs(skew_, loc=loc_, scale=scale_, size=n_sources) #TODO Ebin evtl anhängen
+                flux_arr_ = 10 ** stats.skewnorm.rvs(skew_, loc=loc_, scale=scale_, size=n_sources)
                 tot_flux = flux_arr_.sum()
                 if not enforce_upper_flux_:
                     break

@@ -41,7 +41,7 @@ def get_loss_and_keys_flux_fractions(ff_loss_str, do_var=False, do_covar=False):
             loss = max_llh_loss_var
             loss_keys = ["ff_mean", "ff_logvar"]
         else:
-            loss = tf.keras.losses.mse
+            loss = lambda y_true, y_pred: tf.reduce_mean(tf.reduce_mean((y_true - y_pred) ** 2, 2), 1)
             loss_keys = ["ff_mean"]
     elif ff_loss_str.lower() in ["l1", "mae"]:
         loss = tf.keras.losses.mae
@@ -112,10 +112,10 @@ def max_llh_loss_var(y_true, y_pred, logvar):
     :return: max. likelihood loss (up to a constant)
     """
     err = y_pred - y_true
-    precision = tf.exp(-logvar)
+    precision = tf.clip_by_value(tf.exp(-logvar), 0, 1000)
     term1 = err ** 2 * precision
     term2 = logvar
-    max_llh_loss = tf.reduce_sum(term1 + term2, 1) / 2.0 #Ask warum /2
+    max_llh_loss = tf.reduce_sum(term1 + term2, 1) / 2.0
     max_llh_loss = tf.reduce_sum(max_llh_loss, 1)
     return max_llh_loss
 

@@ -60,7 +60,7 @@ def plot_flux_fractions_Ebin(params, true_ffs, preds, nptfit_ffs=None, out_file=
     # n_col = max(int(np.ceil(np.sqrt(n_models))), 1)
     # n_row = int(np.ceil(n_models / n_col))
 
-    n_col = 6 #PFUSCH hardcoded ebins
+    n_col = params.data["N_bins"]
     n_row = n_models
 
     if figsize is None:
@@ -100,7 +100,7 @@ def plot_flux_fractions_Ebin(params, true_ffs, preds, nptfit_ffs=None, out_file=
     # pred_stds = np.mean(pred_stds, axis=2)
 
     for i_ax in range(n_row): #, ax in enumerate(scat_ax.flatten(), start=0)
-        for ebin in range(0, 6):  #PFUSCH HARD CODED BINS
+        for ebin in range(0, n_col):
             ax = scat_ax[i_ax][ebin]
             if nptfit_ffs is not None:
                 ax.scatter(true_ffs[:, i_ax], nptfit_ffs[:, i_ax], s=ms_nptfit**2, c="1.0", marker=marker_nptf,
@@ -222,16 +222,17 @@ def plot_flux_fractions_total(params, true_ffs, preds, nptfit_ffs=None, out_file
     # Calculate errors
     mean_abs_error_temp_Ebin = np.mean(np.abs(pred_ffs - true_ffs), 0) #mean over batches
     max_abs_error_temp_Ebin = np.max(np.abs(pred_ffs - true_ffs), 0)
-    weights = [0.1, 0.1, 0.2, 0.3, 0.7, 8.5]
-    mean_abs_error = np.average(mean_abs_error_temp_Ebin, 1, weights) #mean over Ebins #TODO delete
+    #weights = [0.1, 0.1, 0.2, 0.3, 0.7, 8.5]
+    mean_abs_error = np.average(mean_abs_error_temp_Ebin, 1) #mean over Ebins #TODO delete
     max_abs_error = np.max(max_abs_error_temp_Ebin, 1)
     # q95_abs_error = np.quantile(np.abs(pred_ffs - true_ffs), .95, axis=0)
     # q99_abs_error = np.quantile(np.abs(pred_ffs - true_ffs), .99, axis=0)
 
-    #Throw the bins together
-    true_ffs = np.average(true_ffs, axis=2, weights=weights) # (batch x temp x Ebin)
-    pred_ffs = np.average(pred_ffs, axis=2, weights=weights)
-    pred_stds = np.average(pred_stds, axis=2, weights=weights)
+    #Throw the bins together add weights
+    true_ffs = np.average(true_ffs, axis=2) # (batch x temp x Ebin)
+    pred_ffs = np.average(pred_ffs, axis=2)
+    if pred_stds is not None:
+        pred_stds = np.average(pred_stds, axis=2)
 
 
 
@@ -608,7 +609,7 @@ def plot_maps(maps, params, out_file="maps.pdf", cmap="rocket_r", plot_inds=None
 def plot_flux_per_Ebin(params, y_true, y_pred):
     #TODO Ebins anzeigen lassen
     assert y_true.shape == y_pred['ff_mean'].shape
-    Ebins = y_true.shape[2]
+    Ebins = params.data["N_bins"]
 
     models = params.mod["models"]
     n_models = len(models)

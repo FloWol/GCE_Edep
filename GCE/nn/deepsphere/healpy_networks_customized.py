@@ -26,6 +26,7 @@ class HealpyGCNN:
         self._inds_ex = index_dict["indexes_extended"]
         self._ind_holes_to_ex = index_dict["ind_holes_to_ex"]
 
+
         if which == "flux_fractions":
             dim_out = self._p.mod["n_models"]
             if self._p.nn.ff["alea_covar"]:
@@ -38,7 +39,7 @@ class HealpyGCNN:
             raise NotImplementedError
 
         self.dim_out = dim_out
-        self.dim_out_flat = np.product(dim_out)*2#TODO EBINS!!!
+        self.dim_out_flat = np.product(dim_out)*self._p.data["N_bins"]
 
     def compute_output(self, input_tensor, tau=None):
         """
@@ -69,7 +70,7 @@ class HealpyGCNN:
         # Relative counts (i.e., divide by total number of counts in the map)?
         rel_counts = self._p.nn.hist["rel_counts"] if self.which == "histograms" else self._p.nn.ff["rel_counts"]
         if rel_counts:
-            first_channel = first_channel / tot_counts #TODO  ASK total counts per map or per bin?
+            first_channel = first_channel / tot_counts
 
         preprocessed_input = first_channel  # store in a variable that will be returned (input for residual calculation)
 
@@ -159,7 +160,7 @@ class HealpyGCNN:
 
         # Final fully-connected layer without activation
         t = tf.keras.layers.Dense(self.dim_out_flat, use_bias=False)(t)
-        t = tf.keras.layers.Reshape([4, 2])(t)
+        t = tf.keras.layers.Reshape([np.product(self.dim_out), self._p.data["N_bins"]])(t)
 
         # For histograms: reshape to n_batch x n_bins x n_hist_templates
         if self.which == "histograms":

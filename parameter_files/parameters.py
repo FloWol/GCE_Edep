@@ -257,21 +257,21 @@ def get_params(int_flag=0):
     p_ff = DotDict()
     p_ff["return_ff"] = True  # main switch for flux fraction estimation
     p_ff["alea_covar"] = False  # if True: estimate aleatoric uncertainty covariance matrix
-    p_ff["alea_var"] = True  # if True: estimate aleatoric uncertainty variances, no correlations
+    p_ff["alea_var"] = False  # if True: estimate aleatoric uncertainty variances, no correlations
     p_ff["rel_counts"] = True  # scale the pixel values by the total number of counts in the map?
-    p_ff["last_act"] = "normalized_softplus"  # last activation function yielding the flux fraction mean estimates
+    p_ff["last_act"] = "softmax"  # last activation function yielding the flux fraction mean estimates
     # "softmax" or "normalized_softplus"
     p_nn["ff"] = p_ff
 
     # SCD histograms (Note: make sure that the desired histogram was saved when combining the template maps, see p_comb)
     ###################################
     p_hist = DotDict()
-    p_hist["return_hist"] = True  # main switch for SCD histogram estimation
+    p_hist["return_hist"] = False  # main switch for SCD histogram estimation
     p_hist["hist_templates"] = ["gce_12_PS", "iso_PS"]  # list of PS templates with histogram
     # Note: this must be subset of the templates for which the histograms were saved, given by p_comb["hist_templates")
     p_hist["last_act"] = "normalized_softplus"  # last activation function yielding the SCD histogram,
     # "softmax" or "normalized_softplus"
-    p_hist["calculate_residual"] = True  # calculate FF residual and feed as an additional input to the brightness part
+    p_hist["calculate_residual"] = False  # calculate FF residual and feed as an additional input to the brightness part
     p_hist["rel_counts"] = True  # feed relative counts (and normalized residual) to histogram part of the NN?
     p_hist["which_histogram"] = "dNdF"  # "dNdF", "counts_per_PS", or "counts_per_pix"
     p_hist["log_spaced_bins"] = True  # are the bins logarithmically spaced (otherwise: linear spacing is assumed)?
@@ -280,7 +280,7 @@ def get_params(int_flag=0):
     # Training data selection settings (can be used to bias training data fed to the NN)
     ###################################
     p_cond = DotDict()
-    p_cond["cond_on_training_data_str"] = "lambda x: x.sum() > 0"  # None or str with a lambda fct. of a single map that
+    p_cond["cond_on_training_data_str"] = "lambda x: np.all(np.sum(x,axis=0) > 0)"  # None or str with a lambda fct. of a single map that
     # evaluates to True or False, e.g. "lambda x: x.sum() < 1000". Note: 'eval' will be used to evaluate this expression
     p_cond["cond_on_training_labels_str"] = None  # None or str containing a lambda fct. of a single label
     # Note: if histogram estimation is activated, label[0] contains flux fractions, label[1] contains SCD histograms

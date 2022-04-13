@@ -332,7 +332,7 @@ def build_index_dict(params):
     roi_extended = hp.reorder(make_mask_total(nside=1, mask_ring=True, inner=0,
                                               outer=outer_rad), r2n=True)
     roi_dict = dict()
-    roi_dict["indexes"] = get_pixels_with_holes(roi, nsides) #TODO hier ebnis len einfügen??
+    roi_dict["indexes"] = get_pixels_with_holes(roi, nsides)
     roi_dict["indexes_extended"] = get_pixels(roi_extended, nsides)
     roi_dict["ind_holes_to_ex"] = [np.asarray([np.argwhere(roi_dict["indexes_extended"][i] == ind)[0][0]
                                                 for ind in roi_dict["indexes"][i]])
