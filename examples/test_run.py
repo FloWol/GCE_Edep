@@ -24,38 +24,16 @@ data, labels = samples["data"], samples["label"]  # samples contains data and la
 print("Shapes:")
 print("  Flux fractions", labels[0].shape)  # n_samples x n_templates
 
-#plot generated maps
-map_to_plot = 0 #index of which map is plotted
-r = gce.p.data["outer_rad"] + 1
-fig, ax= plt.subplots(2,7,figsize = (25,5))
-subplot=1
-[axi.set_axis_off() for axi in ax.ravel()]
-plt.tight_layout()
-for Ebin in range(0,len(gce.p.data["Ebins"])-1):
-
-    hp.cartview(gce.decompress(data[map_to_plot,:,Ebin] * gce.template_dict["rescale_compressed"]), nest=True,
-                 lonra=[-r, r], latra=[-r, r], sub=(2,7,subplot), title='Counts Bin ' + str(Ebin))
-
-    hp.cartview(gce.decompress(data[map_to_plot,:,Ebin]), nest=True,
-                 lonra=[-r, r], latra=[-r, r], sub=(2,7,7+subplot), title='Flux Bin ' + str(Ebin))
-    subplot+=1
-
-plt.show()
-
-
-hp.cartview(gce.decompress(gce.template_dict["rescale_compressed"], fill_value=np.nan), nest=True,
-                title="Fermi exposure correction", lonra=[-r, r], latra=[-r, r])
-plt.show()
-fermi_counts = gce.datasets["test"].get_fermi_counts()
-hp.cartview(gce.decompress(fermi_counts * gce.generators["test"].settings_dict["rescale_compressed"]), nest=True,
-            title="Fermi data: Count space", max=100, lonra=[-r, r], latra=[-r, r])
-# hp.cartview(gce.decompress(fermi_counts), nest=True, title="Fermi data: Flux space", max=100)
-plt.show()
-
-
 gce.build_nn()
 
-gce.train_nn("flux_fractions")
+#gce.train_nn("flux_fractions")
+gce.load_nn()
 
+n_samples = 20
+test_samples = gce.datasets["test"].get_samples(n_samples)
+test_data, test_ffs, test_hists = test_samples["data"], test_samples["label"][0], test_samples["label"][0]
+tau = np.arange(5, 100, 5) * 0.01  # quantile levels for SCD histograms, from 5% to 95% in steps of 5%
+pred = gce.predict(test_data, tau=tau, multiple_taus=True)  # get the NN predictions
 
+gce.plot_flux_per_Ebin(test_ffs, pred)
 

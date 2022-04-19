@@ -674,7 +674,6 @@ class Analysis:
             else:
                 nn_input = data_
             return nn_input
-        #PFUSCH immer nn_input[0] genommen weil mit Tau funst nicht
         # Loss helper function
         def get_loss(data_, label_, global_size, training):
             nn_input = get_nn_input(data_)
@@ -687,7 +686,6 @@ class Analysis:
             with tf.GradientTape() as tape:
                 loss_val_ = get_loss(data_, label_, global_size, training=True)
             gradients = tape.gradient(loss_val_, weights_to_train)
-            #gradients = [tf.clip_by_value(grad, 1e-10, 1e+30) for grad in gradients]
             optimizer.apply_gradients(zip(gradients, weights_to_train))
             return loss_val_
 
@@ -702,19 +700,19 @@ class Analysis:
 
         # Wrapper around get_loss that takes care of the replicas in case multiple GPUs are available
         # NOTE: this function should NOT be used in distributed train step because gradients need to go inside strategy
-        @tf.function
+        #@tf.function
         def distributed_get_loss(data_, label_, global_size, training):
             per_replica_losses = self._strategy.run(get_loss, args=(data_, label_, global_size, training))
             return self._strategy.reduce(tf.distribute.ReduceOp.SUM, per_replica_losses, axis=None)
 
         # Wrapper around train_step that takes care of the replicas in case multiple GPUs are available
-        @tf.function
+        #@tf.function
         def distributed_train_step(data_, label_, global_size):
             per_replica_losses = self._strategy.run(train_step, args=(data_, label_, global_size))
             return self._strategy.reduce(tf.distribute.ReduceOp.SUM, per_replica_losses, axis=None)
 
         # Wrapper around get_metrics that takes care of the replicas in case multiple GPUs are available
-        @tf.function
+        #@tf.function
         def distributed_get_metrics(data_, label_, global_size, training=False):
             per_replica_metrics = self._strategy.run(get_metrics, args=(data_, label_, global_size, training))
             return [self._strategy.reduce(tf.distribute.ReduceOp.SUM, metric, axis=None)

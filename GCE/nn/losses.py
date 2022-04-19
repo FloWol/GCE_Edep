@@ -111,9 +111,11 @@ def max_llh_loss_var(y_true, y_pred, logvar):
     :param logvar: uncertainty log-variances
     :return: max. likelihood loss (up to a constant)
     """
+    logvar=tf.clip_by_value(logvar,-13.8,tf.float32.max)
     err = y_pred - y_true
-    precision = tf.clip_by_value(tf.exp(-logvar), 0, 1000)
+    precision = tf.exp(-logvar)
     term1 = err ** 2 * precision
+
     term2 = logvar
     max_llh_loss = tf.reduce_sum(term1 + term2, 1) / 2.0
     max_llh_loss = tf.reduce_sum(max_llh_loss, 1)

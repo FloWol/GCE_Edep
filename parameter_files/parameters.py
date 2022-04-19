@@ -257,7 +257,7 @@ def get_params(int_flag=0):
     p_ff = DotDict()
     p_ff["return_ff"] = True  # main switch for flux fraction estimation
     p_ff["alea_covar"] = False  # if True: estimate aleatoric uncertainty covariance matrix
-    p_ff["alea_var"] = False  # if True: estimate aleatoric uncertainty variances, no correlations
+    p_ff["alea_var"] = True  # if True: estimate aleatoric uncertainty variances, no correlations
     p_ff["rel_counts"] = True  # scale the pixel values by the total number of counts in the map?
     p_ff["last_act"] = "softmax"  # last activation function yielding the flux fraction mean estimates
     # "softmax" or "normalized_softplus"
@@ -295,7 +295,7 @@ def get_params(int_flag=0):
     p_train = DotDict()
     # Note: the batch sizes specified below set the GLOBAL batch size.
     # For example, setting p_train['batch_size'] = 256 yields n_batch = 64 on each GPU when using 4 GPUs.
-    p_train['num_steps'] = 2500  # number of steps to do (total number of maps shown is num_steps * batch_size)
+    p_train['num_steps'] = 50  # number of steps to do (total number of maps shown is num_steps * batch_size)
     p_train['batch_size'] = 16  # number of samples per training batch. Should be a power of 2 for greater speed
     p_train['batch_size_val'] = 16  # number of samples per validation batch
     p_train['prefetch_batch_buffer'] = 5  # number of batches to prefetch for training data

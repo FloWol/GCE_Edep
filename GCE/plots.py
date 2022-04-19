@@ -620,15 +620,21 @@ def plot_flux_per_Ebin(params, y_true, y_pred):
     #loop over templates
     for temp in range(0, y_true.shape[1]):
         #marker = next(marker)
-        plt.scatter(range(0, Ebins), y_pred['ff_mean'][0, temp, :], marker=next(marker),
+        plt.scatter(np.arange(0,Ebins,1), y_pred['ff_mean'][0, temp, :], marker=next(marker),
                     label=str(params.mod["model_names"][temp])+" pred", color=colors[temp], alpha=0.5) #plot pred vals per temp
 
-        plt.scatter(range(0, Ebins), y_true[0, temp, :], marker=next(marker),
+        plt.scatter(np.arange(0,Ebins,1), y_true[0, temp, :], marker=next(marker),
                     label=str(params.mod["model_names"][temp])+" true", color=colors[temp], alpha=0.5) #plot true vals
+    # for temp in range(0, y_true.shape[1]):
+    #     plt.hist(y_pred['ff_mean'][0, temp, :], Ebins,
+    #                 label=str(params.mod["model_names"][temp])+" pred", alpha=0.5)
+    #     # plt.hist(y_true['ff_mean'][0, temp, :], Ebins, marker=next(marker),
+    #     #              label=str(params.mod["model_names"][temp])+" pred", color=colors[temp], alpha=0.5)
 
 
     #TODO plt axis title etc
     #plt.title('Flux means per Ebin per Template predicted and true')
+    plt.xticks(np.arange(0,Ebins,1))
     plt.xlabel("Energy bins")
     plt.ylabel("Flux means")
     plt.legend(bbox_to_anchor=(0,1.02,1,0.2), loc="lower left",
