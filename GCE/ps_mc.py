@@ -204,8 +204,7 @@ def make_map(flux_arr, temp, exp, pdf_psf_sampler, Edep, Ebins,upscale_nside=163
 
     # Get array containing the pixel of each count before applying the PSF
     pix_counts = np.repeat(pix_ps, num_phot)
-    #print("Pix:counts shape: " + str(pix_counts.shape) + "Pixcounts: " + str(pix_counts[:10]))
-    #print("phot shape: " + str(num_phot.shape) + "phot: " + str(num_phot[:10]))
+
 
     ##################################################################
     # Do an Energy sampling for every pixel in pixel_counts right here
@@ -214,6 +213,10 @@ def make_map(flux_arr, temp, exp, pdf_psf_sampler, Edep, Ebins,upscale_nside=163
     pdf_E_samp = PDFSampler(E, pdf_E)
     E = pdf_E_samp(pix_counts.size)
     Eind = np.digitize(E, Ebins)
+    # print(Eind.size)
+    # print(Eind.shape)
+
+
 
     # How to deal with PSF?
 
@@ -240,8 +243,8 @@ def make_map(flux_arr, temp, exp, pdf_psf_sampler, Edep, Ebins,upscale_nside=163
         rotz = np.array([[np.cos(phm), -np.sin(phm), a0], [np.sin(phm), np.cos(phm), a0], [a0, a0, a1]])
 
         # Sample distances from PSF for each source photon.
-        n_counts_tot = num_phot.sum()
-        dist_flat = pdf_psf_sampler(n_counts_tot)  # list of distances for flattened counts, len: n_counts_tot
+        n_counts_tot = num_phot.sum() # num_phot.sum() == pix_counts.size() conversion from count space to sky map pixels
+        dist_flat = pdf_psf_sampler(Eind)  # list of distances for flattened counts, len: n_counts_tot #Todo hier Energie dazu (Eind)
         assert len(dist_flat) == n_counts_tot
 
         # Reshape: 3 x 3 x N  ->  N x 3 x 3, then tile: one matrix for each count -> num_phot x 3 x 3

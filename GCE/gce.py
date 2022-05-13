@@ -700,19 +700,19 @@ class Analysis:
 
         # Wrapper around get_loss that takes care of the replicas in case multiple GPUs are available
         # NOTE: this function should NOT be used in distributed train step because gradients need to go inside strategy
-        #@tf.function
+        @tf.function
         def distributed_get_loss(data_, label_, global_size, training):
             per_replica_losses = self._strategy.run(get_loss, args=(data_, label_, global_size, training))
             return self._strategy.reduce(tf.distribute.ReduceOp.SUM, per_replica_losses, axis=None)
 
         # Wrapper around train_step that takes care of the replicas in case multiple GPUs are available
-        #@tf.function
+        @tf.function
         def distributed_train_step(data_, label_, global_size):
             per_replica_losses = self._strategy.run(train_step, args=(data_, label_, global_size))
             return self._strategy.reduce(tf.distribute.ReduceOp.SUM, per_replica_losses, axis=None)
 
         # Wrapper around get_metrics that takes care of the replicas in case multiple GPUs are available
-        #@tf.function
+        @tf.function
         def distributed_get_metrics(data_, label_, global_size, training=False):
             per_replica_metrics = self._strategy.run(get_metrics, args=(data_, label_, global_size, training))
             return [self._strategy.reduce(tf.distribute.ReduceOp.SUM, metric, axis=None)

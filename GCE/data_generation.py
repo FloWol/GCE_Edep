@@ -72,7 +72,7 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
 
     # PSF: use Fermi-LAT PSF
     if do_fermi_psf:
-        pdf = get_fermi_pdf_sampler()
+        pdf = get_fermi_pdf_sampler(Ebins)
     else:
         pdf = None
 
@@ -109,12 +109,17 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
         temp_folder = os.path.join(output_path, temp)
         os.makedirs(temp_folder, exist_ok=True)
 
+        #nach oben verschoben da weniger overhead
+        E = np.linspace(float(Ebins[0]), float(Ebins[len(Ebins) - 1]), 1000000, endpoint=False)
+        pdf_E = params.Edep[temp](E)  # template specific energy dependence
+        pdf_E_samp = PDFSampler(E, pdf_E)
+
         # For each chunk
         for chunk in range(n_chunk):
             #poissonian energy dependence part 1
-            E = np.linspace(float(Ebins[0]), float(Ebins[len(Ebins) - 1]), 1000000, endpoint=False)
-            pdf_E = params.Edep[temp](E) #template specific energy dependence
-            pdf_E_samp = PDFSampler(E, pdf_E)
+            # E = np.linspace(float(Ebins[0]), float(Ebins[len(Ebins) - 1]), 1000000, endpoint=False)
+            # pdf_E = params.Edep[temp](E) #template specific energy dependence
+            # pdf_E_samp = PDFSampler(E, pdf_E)
 
 
             # Draw the (log) amplitude

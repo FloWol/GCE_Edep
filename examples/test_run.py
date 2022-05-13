@@ -35,5 +35,7 @@ test_data, test_ffs, test_hists = test_samples["data"], test_samples["label"][0]
 tau = np.arange(5, 100, 5) * 0.01  # quantile levels for SCD histograms, from 5% to 95% in steps of 5%
 pred = gce.predict(test_data, tau=tau, multiple_taus=True)  # get the NN predictions
 
+gce.plot_flux_fractions_Ebin(test_ffs, pred)
+gce.plot_flux_fractions_total(test_ffs, pred)
 gce.plot_flux_per_Ebin(test_ffs, pred)
 

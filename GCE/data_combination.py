@@ -360,7 +360,7 @@ def combine_template_maps(save_filenames, params, job_id=None, train_range=None,
 
 
             # Store in "data_out" dictionary
-            data_out["data"] = combined_map   #Pfusch why transposed? .T
+            data_out["data"] = combined_map   #ASK why transposed? .T
             data_out["flux_fraction"] = flux_fraction_dict
             data_out["info"] = info_dict_comb
             # Now: compute histograms

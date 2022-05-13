@@ -6,8 +6,9 @@ import tensorflow as tf
 import numpy as np
 import healpy as hp
 import os
+from scipy import interpolate
 from .utils import DotDict
-from .pdf_sampler import PDFSampler
+from .pdf_energy_sampler import PDFSampler
 
 
 def make_plane_mask(band_mask_range, nside):
@@ -205,20 +206,20 @@ def get_template(fermi_folder, temp):
     return t
 
 
-def fermi_psf(r):
+def fermi_psf(r, Ebins):
     """
     Fermi point-spread function.
     :param r: distance in radians from the centre of the point source
-    :return: Fermi PSF
+    :return: Fermi PSF as a list in the order of the energy bins
     """
     #TODO PSF energy dependend machen
     # Define parameters that specify the Fermi-LAT PSF at 2 GeV
-    fcore = 0.748988248179
-    score = 0.428653790656
-    gcore = 7.82363229341
-    stail = 0.715962650769
-    gtail = 3.61883748683
-    spe = 0.00456544262478
+
+    #TODO die parameter mit energie abhängigen funktionen ersetzten
+    #TODO array aus verschiedenen Kingsprofiles zu den unterschiedlichen energy bins
+    fermi_psf_params_function = psf_params()
+
+    fermi_psf_inner_list = []
 
     # Define the full PSF in terms of two King functions
     def king_fn(x, sigma, gamma):
@@ -228,13 +229,49 @@ def fermi_psf(r):
     def fermi_psf_inner(r_):
         return fcore * king_fn(r_ / spe, score, gcore) + (1 - fcore) * king_fn(r_ / spe, stail, gtail)
 
-    return fermi_psf_inner(r)
+    for i in range(0, len(Ebins)-1):
+        E = (Ebins[i + 1] + Ebins[i]) / 2 #mean energy of a bin is used for the PSF
+
+        fcore, score, gcore, stail, gtail, spe = fermi_psf_params_function(E)
+
+        fermi_psf_inner_list.append(fermi_psf_inner(r))
 
 
-def get_fermi_pdf_sampler(n_points_f=int(1e6)):
+
+
+    return fermi_psf_inner_list
+
+def psf_params():
+    fcore = 0.748988248179
+    score = 0.428653790656
+    gcore = 7.82363229341
+    stail = 0.715962650769
+    gtail = 3.61883748683
+    spe = 0.00456544262478
+
+    x = np.array([2, 20])
+    fx2 = np.array([fcore, score, gcore, stail, gtail, spe])
+
+    fcore = 0.834725201378
+    score = 0.498192326976
+    gcore = 6.32075520959
+    stail = 1.06648424558
+    gtail = 4.49677834267
+    spe = 0.000943339426754
+
+    fx20 = np.array([fcore, score, gcore, stail, gtail, spe])
+
+    fx = np.array([fx2, fx20])
+
+    f = interpolate.interp1d(x, fx.T)
+
+    return f
+
+
+def get_fermi_pdf_sampler(Ebins , n_points_f=int(1e6)):
     f = np.linspace(0, np.pi, n_points_f)
-    pdf_psf = f * fermi_psf(f)
-    pdf = PDFSampler(f, pdf_psf)
+    pdf_psf = f * fermi_psf(f, Ebins)
+    pdf = PDFSampler(f, pdf_psf, Ebins)
     return pdf
 
 

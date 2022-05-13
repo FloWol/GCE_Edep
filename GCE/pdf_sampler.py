@@ -17,8 +17,8 @@ class PDFSampler:
         assert(np.all(pofx >= 0)), "pdf cannot be negative"
 
         # Sort values by their p(x) value, for more accurate sampling
-        self.sortxvals = np.argsort(self.pofx)
-        self.pofx = self.pofx[self.sortxvals]
+        self.sortxvals = np.argsort(self.pofx) #indizes von pofx das pofx aufsteigend ist
+        self.pofx = self.pofx[self.sortxvals]   #pofx sortieren
 
         # Calculate cdf
         self.cdf = np.cumsum(self.pofx)
@@ -33,8 +33,8 @@ class PDFSampler:
         # not be 1 as the pdf does not have to be normalised
         #print("Psamples shape: " + str(samples.shape) + "samples: " + str(samples[:10]))
         unidraw = np.random.uniform(high=self.cdf[-1], size=samples)
-        cdfdraw = np.searchsorted(self.cdf, unidraw)
-        cdfdraw = self.sortxvals[cdfdraw]
-        return self.xvals[cdfdraw]
+        cdfdraw = np.searchsorted(self.cdf, unidraw) #gibt indizes von cdf aus wo unidraw werte sind
+        cdfdraw = self.sortxvals[cdfdraw] #sucht index xwerte von den gezogenen cdf values
+        return self.xvals[cdfdraw]  #xwerte für die dazugehörigen cdf werte
 
 
