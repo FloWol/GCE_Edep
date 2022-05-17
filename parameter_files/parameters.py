@@ -115,7 +115,7 @@ def get_params(int_flag=0):
     p_data["nside"] = int(128)  # nside resolution parameter of the data
     p_data["exposure"] = "Fermi"  # one of "Fermi", "Fermi_mean", or constant integer
     p_data["psf"] = True  # if True: apply Fermi PSF to PS templates when generating PS maps
-    p_data["Ebins"] = np.array([2,5,10])#np.array([0.1, 0.2, 0.3, 0.5, 0.8, 1.5, 10])
+    p_data["Ebins"] = np.array([2,10,18])#np.array([0.1, 0.2, 0.3, 0.5, 0.8, 1.5, 10])
     # (see the function fermi_psf() in data_utils.py)
     p["data"] = p_data
 
@@ -295,7 +295,7 @@ def get_params(int_flag=0):
     p_train = DotDict()
     # Note: the batch sizes specified below set the GLOBAL batch size.
     # For example, setting p_train['batch_size'] = 256 yields n_batch = 64 on each GPU when using 4 GPUs.
-    p_train['num_steps'] = 50  # number of steps to do (total number of maps shown is num_steps * batch_size)
+    p_train['num_steps'] = 500  # number of steps to do (total number of maps shown is num_steps * batch_size)
     p_train['batch_size'] = 16  # number of samples per training batch. Should be a power of 2 for greater speed
     p_train['batch_size_val'] = 16  # number of samples per validation batch
     p_train['prefetch_batch_buffer'] = 5  # number of batches to prefetch for training data

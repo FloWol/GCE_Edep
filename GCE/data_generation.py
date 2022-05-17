@@ -72,7 +72,8 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
 
     # PSF: use Fermi-LAT PSF
     if do_fermi_psf:
-        pdf = get_fermi_pdf_sampler(Ebins)
+        #Todo Edep ins params file
+        pdf = get_fermi_pdf_sampler(Ebins, Edep=False)
     else:
         pdf = None
 

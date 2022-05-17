@@ -8,7 +8,8 @@ import healpy as hp
 import os
 from scipy import interpolate
 from .utils import DotDict
-from .pdf_energy_sampler import PDFSampler
+from .pdf_energy_sampler import PDFSampler as PDF_Energy_Sampler
+from .pdf_sampler import PDFSampler
 
 
 def make_plane_mask(band_mask_range, nside):
@@ -268,10 +269,44 @@ def psf_params():
     return f
 
 
-def get_fermi_pdf_sampler(Ebins , n_points_f=int(1e6)):
+def fermi_psf_noEdep(r):
+    """
+    Fermi point-spread function.
+    :param r: distance in radians from the centre of the point source
+    :return: Fermi PSF
+    """
+    # Define parameters that specify the Fermi-LAT PSF at 2 GeV
+    fcore = 0.748988248179
+    score = 0.428653790656
+    gcore = 7.82363229341
+    stail = 0.715962650769
+    gtail = 3.61883748683
+    spe = 0.00456544262478
+
+    # Define the full PSF in terms of two King functions
+    def king_fn(x, sigma, gamma):
+        return 1. / (2. * np.pi * sigma ** 2.) * (1. - 1. / gamma) * (1. + (x ** 2. / (2. * gamma * sigma ** 2.))) ** (
+            -gamma)
+
+    def fermi_psf_inner(r_):
+        return fcore * king_fn(r_ / spe, score, gcore) + (1 - fcore) * king_fn(r_ / spe, stail, gtail)
+
+    return fermi_psf_inner(r)
+
+
+def get_fermi_pdf_sampler(Ebins , Edep=True, n_points_f=int(1e6)):
     f = np.linspace(0, np.pi, n_points_f)
-    pdf_psf = f * fermi_psf(f, Ebins)
-    pdf = PDFSampler(f, pdf_psf, Ebins)
+
+
+    if Edep==True:
+        pdf_psf = f * fermi_psf(f, Ebins)
+        pdf = PDF_Energy_Sampler(f, pdf_psf, Ebins)
+    else:
+        pdf_psf = f * fermi_psf_noEdep(f)
+
+        pdf = PDFSampler(f, pdf_psf)
+
+
     return pdf
 
 

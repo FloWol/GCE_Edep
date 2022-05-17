@@ -244,7 +244,12 @@ def make_map(flux_arr, temp, exp, pdf_psf_sampler, Edep, Ebins,upscale_nside=163
 
         # Sample distances from PSF for each source photon.
         n_counts_tot = num_phot.sum() # num_phot.sum() == pix_counts.size() conversion from count space to sky map pixels
-        dist_flat = pdf_psf_sampler(Eind)  # list of distances for flattened counts, len: n_counts_tot #Todo hier Energie dazu (Eind)
+        #Todo schönere lösung
+        psf_Edep=False
+        if psf_Edep==True:
+            dist_flat = pdf_psf_sampler(Eind)  # list of distances for flattened counts, len: n_counts_tot
+        else:
+            dist_flat = pdf_psf_sampler(n_counts_tot)
         assert len(dist_flat) == n_counts_tot
 
         # Reshape: 3 x 3 x N  ->  N x 3 x 3, then tile: one matrix for each count -> num_phot x 3 x 3
