@@ -17,12 +17,15 @@ from .tf_ops import get_gpu_names
 from .utils import import_from, DotDict
 from .data_generation import generate_template_maps
 from .data_combination import combine_template_maps
-from .data_utils import build_index_dict, masked_to_full, make_mask_total, get_template
+from .data_utils import build_index_dict, masked_to_full, make_mask_total, get_template, get_fermi_pdf_sampler
 from .parameter_utils import get_subdict, load_params_from_pickle
 from .nn.pipeline import build_pipeline
 from .nn.Models.deepsphere_cnn import DeepsphereCNN
 from .nn import losses
 from .plots import plot_flux_fractions_Ebin, plot_histograms, plot_maps, plot_flux_fractions_total, plot_flux_per_Ebin
+from .ps_mc import make_map
+from scipy import stats
+from .pdf_energy_sampler import PDFSampler as PDF_Energy_Sampler
 
 
 class Analysis:
@@ -195,6 +198,9 @@ class Analysis:
 
             self.p.gen["combined_maps_folder"] = os.path.join(self.p.gen["combined_maps_root"],
                                                               self.p.comb["data_name"] + "_" + str(nside))
+            # self.p.gen["combined_maps_folder"] = os.path.join(self.p.gen["combined_maps_root"],
+            #                                                   "Ebin 2 10 18 FermiPSF")
+
 
         # Also store npix
         if "data" in self.p.keys():
@@ -510,6 +516,70 @@ class Analysis:
                                    self.p.comb["data_name"] + "_" + str(self.p.data["nside"]),
                       "params_" + datetime + ".pickle"), "wb") as params_file:
                 pickle.dump(param_subdict, params_file)
+
+    def psf_make_map(self, temp):
+        """
+        Generate simulated template maps that can later be combined for training, validation, and testing.
+        :param ray_settings: settings passed to ray when calling ray.init()
+        :param n_example_plots: number of maps to plot and save for each template (as a quick check)
+        :param job_id: if running several jobs for the data generation: ID of the current job
+        """
+        required_keys = ("gen", "data", "mod", "tt")
+        self._check_keys_exist(required_keys)
+
+        prior_dict = self.p.tt.priors
+        n_sim_per_chunk = self.p.tt["n_sim_per_chunk"]
+
+        #get flux
+        loc_ = np.random.uniform(*prior_dict[temp]["mean_exp"], size=n_sim_per_chunk)
+        scale_ = prior_dict[temp]["var_exp"] * np.random.chisquare(1, size=n_sim_per_chunk)
+        skew_ = np.random.normal(loc=0, scale=prior_dict[temp]["skew_std"], size=n_sim_per_chunk)
+        flux_arr_ = 10 ** stats.skewnorm.rvs(skew_, loc=loc_, scale=np.sqrt(scale_), size=50)
+
+        #exposure and energy dependence
+        exp = self.template_dict["exp"]
+
+        def gce_12_PS_energy(E):  # for test
+            pdf = np.ones_like(E)
+            return pdf
+        pdf_E = gce_12_PS_energy
+
+
+        #get template
+        t = self.template_dict["T_flux"][temp]
+        total_mask_neg_safety = self.template_dict["mask_safety_full"]
+        t_masked = t * (1 - total_mask_neg_safety)
+        t_final = t_masked / t_masked.sum()
+        total_mask_neg = self.template_dict["mask_ROI_full"]
+
+        Ebins=np.array([1,3,5])  #self.p.data["Ebins"]
+
+        r = self.p.data["outer_rad"] + 1
+        inds_ps_outside_roi = set(np.setdiff1d(self.template_dict["indices_safety"], self.template_dict["indices_roi"]))
+
+        # Generate template maps
+
+        sim_maps, map_arr_no_psf, num_phot_cleaned, flux_arr_return = make_map(np.asarray([100]), t_final, np.ones_like(exp) ,
+                                                    get_fermi_pdf_sampler(Ebins), pdf_E, Ebins,
+                                                    is_nest=True, inds_outside_roi=inds_ps_outside_roi, clean_count_list=False)
+
+        nside = self.p.data["nside"]
+        mask_type = self.p.data["mask_type"]
+
+        sim_maps = np.asarray(sim_maps) * np.expand_dims((1 - total_mask_neg), [-1])
+
+        # hp.mollview(t * (1 - total_mask_neg), title="Template (not exposure-corrected)", nest=True)
+        # hp.mollview(exp, title="Exposure (nside = " + str(nside) + ")", nest=True)
+        # hp.mollview(total_mask_neg, title="Mask (" + str(mask_type) + ")", nest=True)
+        # hp.mollview(total_mask_neg_safety, title="Extended mask (allowing leakage into ROI)", nest=True)
+        hp.cartview(sim_maps[:, 0], title="Energy:" + str(np.mean(Ebins[0:2])) + "GeV",lonra=[-r, r], latra=[-r, r], nest=True)
+        plt.show()
+        hp.cartview(sim_maps[:, 1], title="Energy:" + str(np.mean(Ebins[1:])) + "GeV", lonra=[-r, r], latra=[-r, r],nest=True)
+        plt.show()
+
+
+        return sim_maps
+
 
     def build_pipeline(self):
         """
@@ -975,6 +1045,7 @@ class Analysis:
         required_keys = ("mod", "nn", "plot")
         self._check_keys_exist(required_keys)
         assert self.p.nn.ff["return_ff"], "self.p.nn.ff['return_ff'] is set to False!"
+        return plot_flux_fractions_total(self.p, true_ffs, preds, **kwargs)
         return plot_flux_fractions_total(self.p, true_ffs, preds, **kwargs)
 
     def plot_flux_per_Ebin(self, true_ffs, preds, **kwargs):

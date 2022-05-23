@@ -160,7 +160,30 @@ class PairGeneratorCNNPreGenerated(PairGenerator):
                         map_cond_result = True if self._p.nn.cond["cond_on_training_data"] is None \
                             else self._p.nn.cond["cond_on_training_data"](new_array)
                         ready_to_yield = label_cond_result and map_cond_result
-                #print(self._p.nn.cond["cond_on_training_data"](new_array))
+
+                    elif self.train_val_test == 1 and (self._p.nn.cond["cond_on_val_data"] is not None
+                                                     or self._p.nn.cond["cond_on_val_labels"] is not None):
+                        impose_cond = self._cond_must_be_imposed \
+                                      or (self._p.nn.cond["prob_for_conditions"] > np.random.uniform(0, 1, 1)[0])
+                        if impose_cond:
+                            label_cond_result = True if self._p.nn.cond["cond_on_val_labels"] is None \
+                                else self._p.nn.cond["cond_on_val_labels"](labels)
+                            map_cond_result = True if self._p.nn.cond["cond_on_val_data"] is None \
+                                else self._p.nn.cond["cond_on_val_data"](new_array)
+                            ready_to_yield = label_cond_result and map_cond_result
+
+                    elif self.train_val_test == 2 and (self._p.nn.cond["cond_on_test_data"] is not None
+                                                     or self._p.nn.cond["cond_on_test_labels"] is not None):
+                        impose_cond = self._cond_must_be_imposed \
+                                      or (self._p.nn.cond["prob_for_conditions"] > np.random.uniform(0, 1, 1)[0])
+                        if impose_cond:
+                            label_cond_result = True if self._p.nn.cond["cond_on_test_labels"] is None \
+                                else self._p.nn.cond["cond_on_test_labels"](labels)
+                            map_cond_result = True if self._p.nn.cond["cond_on_test_data"] is None \
+                                else self._p.nn.cond["cond_on_test_data"](new_array)
+                            ready_to_yield = label_cond_result and map_cond_result
+
+
 
                 # Break
                 if ready_to_yield:

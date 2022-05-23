@@ -8,6 +8,7 @@ import colorcet as cc
 import itertools
 
 
+
 def plot_flux_fractions_Ebin(params, true_ffs, preds, nptfit_ffs=None, out_file="ff_error_plot.pdf", legend=None,
                         show_stripes=True, show_stats=True, delta_y=0, marker="^", marker_nptf="o", ms=8, ms_nptfit=6,
                         alpha=0.4, lw=0.8, lw_nptfit=1.6, ecolor=None, ticks=None, figsize=None):
@@ -69,7 +70,8 @@ def plot_flux_fractions_Ebin(params, true_ffs, preds, nptfit_ffs=None, out_file=
     if ticks is None:
         ticks = [0, 0.2, 0.4, 0.6, 0.8]
     x_ticks = y_ticks = ticks
-
+    # pred_ffs = pred_ffs[:19]
+    # pred_stds = pred_stds[:19]
     # Calculate errors
     mean_abs_error_temp_Ebin = np.mean(np.abs(pred_ffs - true_ffs), 0) #sum over batches
     max_abs_error_temp_Ebin = np.max(np.abs(pred_ffs - true_ffs), 0)

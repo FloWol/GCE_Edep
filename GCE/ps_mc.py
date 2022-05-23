@@ -208,6 +208,7 @@ def make_map(flux_arr, temp, exp, pdf_psf_sampler, Edep, Ebins,upscale_nside=163
 
     ##################################################################
     # Do an Energy sampling for every pixel in pixel_counts right here
+    #Todo die ersten paar schritte kann man außerhalb des loops machen
     E = np.linspace(float(Ebins[0]), float(Ebins[len(Ebins) - 1]), 1000000, endpoint=False)
     pdf_E = Edep(E)
     pdf_E_samp = PDFSampler(E, pdf_E)
@@ -245,11 +246,11 @@ def make_map(flux_arr, temp, exp, pdf_psf_sampler, Edep, Ebins,upscale_nside=163
         # Sample distances from PSF for each source photon.
         n_counts_tot = num_phot.sum() # num_phot.sum() == pix_counts.size() conversion from count space to sky map pixels
         #Todo schönere lösung
-        psf_Edep=False
+        psf_Edep=True
         if psf_Edep==True:
             dist_flat = pdf_psf_sampler(Eind)  # list of distances for flattened counts, len: n_counts_tot
         else:
-            dist_flat = pdf_psf_sampler(n_counts_tot)
+            dist_flat = pdf_psf_sampler(n_counts_tot) #or PDFSampler
         assert len(dist_flat) == n_counts_tot
 
         # Reshape: 3 x 3 x N  ->  N x 3 x 3, then tile: one matrix for each count -> num_phot x 3 x 3
@@ -308,3 +309,5 @@ def make_map(flux_arr, temp, exp, pdf_psf_sampler, Edep, Ebins,upscale_nside=163
     return map_arr, map_arr_no_psf, num_phot_cleaned, flux_arr_return
 
 #TODO energie in PSF einbauentemplatespower law für jedes template
+
+

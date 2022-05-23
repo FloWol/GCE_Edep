@@ -10,6 +10,7 @@ from scipy import interpolate
 from .utils import DotDict
 from .pdf_energy_sampler import PDFSampler as PDF_Energy_Sampler
 from .pdf_sampler import PDFSampler
+import FermiPSF.PSF_king as pk
 
 
 def make_plane_mask(band_mask_range, nside):
@@ -218,7 +219,6 @@ def fermi_psf(r, Ebins):
 
     #TODO die parameter mit energie abhängigen funktionen ersetzten
     #TODO array aus verschiedenen Kingsprofiles zu den unterschiedlichen energy bins
-    fermi_psf_params_function = psf_params()
 
     fermi_psf_inner_list = []
 
@@ -233,7 +233,7 @@ def fermi_psf(r, Ebins):
     for i in range(0, len(Ebins)-1):
         E = (Ebins[i + 1] + Ebins[i]) / 2 #mean energy of a bin is used for the PSF
 
-        fcore, score, gcore, stail, gtail, spe = fermi_psf_params_function(E)
+        fcore, score, gcore, stail, gtail, spe = pk.params(5, 1, E)
 
         fermi_psf_inner_list.append(fermi_psf_inner(r))
 
@@ -242,31 +242,31 @@ def fermi_psf(r, Ebins):
 
     return fermi_psf_inner_list
 
-def psf_params():
-    fcore = 0.748988248179
-    score = 0.428653790656
-    gcore = 7.82363229341
-    stail = 0.715962650769
-    gtail = 3.61883748683
-    spe = 0.00456544262478
-
-    x = np.array([2, 20])
-    fx2 = np.array([fcore, score, gcore, stail, gtail, spe])
-
-    fcore = 0.834725201378
-    score = 0.498192326976
-    gcore = 6.32075520959
-    stail = 1.06648424558
-    gtail = 4.49677834267
-    spe = 0.000943339426754
-
-    fx20 = np.array([fcore, score, gcore, stail, gtail, spe])
-
-    fx = np.array([fx2, fx20])
-
-    f = interpolate.interp1d(x, fx.T)
-
-    return f
+# def psf_params():
+#     # fcore = 0.748988248179
+#     # score = 0.428653790656
+#     # gcore = 7.82363229341
+#     # stail = 0.715962650769
+#     # gtail = 3.61883748683
+#     # spe = 0.00456544262478
+#     #
+#     # x = np.array([2, 20])
+#     # fx2 = np.array([fcore, score, gcore, stail, gtail, spe])
+#     #
+#     # fcore = 0.834725201378
+#     # score = 0.498192326976
+#     # gcore = 6.32075520959
+#     # stail = 1.06648424558
+#     # gtail = 4.49677834267
+#     # spe = 0.000943339426754
+#     #
+#     # fx20 = np.array([fcore, score, gcore, stail, gtail, spe])
+#     #
+#     # fx = np.array([fx2, fx20])
+#     #
+#     # f = interpolate.interp1d(x, fx.T)
+#
+#     return f
 
 
 def fermi_psf_noEdep(r):

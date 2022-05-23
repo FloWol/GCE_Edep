@@ -115,7 +115,7 @@ def get_params(int_flag=0):
     p_data["nside"] = int(128)  # nside resolution parameter of the data
     p_data["exposure"] = "Fermi"  # one of "Fermi", "Fermi_mean", or constant integer
     p_data["psf"] = True  # if True: apply Fermi PSF to PS templates when generating PS maps
-    p_data["Ebins"] = np.array([2,10,18])#np.array([0.1, 0.2, 0.3, 0.5, 0.8, 1.5, 10])
+    p_data["Ebins"] = np.array([2,5,23])#np.array([0.1, 0.2, 0.3, 0.5, 0.8, 1.5, 10])
     # (see the function fermi_psf() in data_utils.py)
     p["data"] = p_data
 
@@ -185,10 +185,14 @@ def get_params(int_flag=0):
         return np.ones_like(E)
 
     # Point sources
+
+    #TODO sollte nur einmal gesamelt werden
     def gce_12_PS_energy(E):  # for test
-        pdf = np.zeros_like(E)
-        for index, val in enumerate(pdf[:490000]):
-            pdf[index] = 1
+        pdf = np.ones_like(E)
+        # pdf = np.zeros_like(E)
+        # for index, val in enumerate(E):
+        #     if val < 5:
+        #         pdf[index] = 1
         return pdf
 
     def thin_disk_PS_energy(E):
@@ -196,8 +200,9 @@ def get_params(int_flag=0):
 
     def iso_PS_energy(E): #for test
         pdf=np.zeros_like(E)
-        for index, val in enumerate(pdf[510000:]):
-            pdf[index+510000] = 1
+        for index, val in enumerate(E):
+            if val > 5:
+                pdf[index] = 1
         return pdf
 
     Edep_dict["bub"] = bub_energy
@@ -282,7 +287,11 @@ def get_params(int_flag=0):
     p_cond = DotDict()
     p_cond["cond_on_training_data_str"] = "lambda x: np.all(np.sum(x,axis=0) > 0)"  # None or str with a lambda fct. of a single map that
     # evaluates to True or False, e.g. "lambda x: x.sum() < 1000". Note: 'eval' will be used to evaluate this expression
+    p_cond["cond_on_val_data_str"] = "lambda x: np.all(np.sum(x,axis=0) > 0)"
+    p_cond["cond_on_test_data_str"] = "lambda x: np.all(np.sum(x,axis=0) > 0)"
     p_cond["cond_on_training_labels_str"] = None  # None or str containing a lambda fct. of a single label
+    p_cond["cond_on_val_labels_str"] = None
+    p_cond["cond_on_test_labels_str"] = None
     # Note: if histogram estimation is activated, label[0] contains flux fractions, label[1] contains SCD histograms
     p_cond["prob_for_conditions"] = 1.0  # with this probability the conditions will be imposed for a given training map
     # (the resulting proportion of samples satisfying this condition will generally be higher because the condition
@@ -302,7 +311,7 @@ def get_params(int_flag=0):
     p_train['prefetch_batch_buffer_val'] = 5  # number of batches to prefetch for validation data
     p_train['eval_frequency'] = 50  # frequency of model evaluations during training (influences training time!)
     p_train['scheduler'] = 'ExponentialDecay'  # learning rate scheduler
-    p_train['scheduler_dict'] = {"initial_learning_rate": 5e-4, "decay_steps": 1, "decay_rate": 1 - 0.00015,
+    p_train['scheduler_dict'] = {"initial_learning_rate": 5e-4, "decay_steps": 1, "decay_rate": 1 - 0.00015, #5e-4
                                  "staircase": False}  # scheduler settings
     p_train['optimizer'] = "Adam"  # optimizer
     p_train['optimizer_dict'] = {"beta_1": 0.9, "beta_2": 0.999, "epsilon": 1e-8}  # optimizer settings

@@ -15,9 +15,9 @@ import time
 import warnings
 from .pdf_sampler import PDFSampler
 
+
 # maps are stored template wise within proper folders, named after the job_id and the chunk number
 # templates are later in data_combination.py combined by their job_id chunk number and then together
-
 
 
 def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job_id=0):
@@ -41,7 +41,7 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
     mask_type = params.data["mask_type"]
     do_fermi_psf = params.data["psf"]
     leakage_delta = params.data["leakage_delta"] if do_fermi_psf else 0
-    Ebins = params.data["Ebins"] #PFUSCH
+    Ebins = params.data["Ebins"]  # PFUSCH
 
     if "db" in params.keys():
         do_poisson_scatter_p = False if params.db["deactivate_poiss_scatter_for_P"] else True
@@ -72,8 +72,8 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
 
     # PSF: use Fermi-LAT PSF
     if do_fermi_psf:
-        #Todo Edep ins params file
-        pdf = get_fermi_pdf_sampler(Ebins, Edep=False)
+        # Todo Edep ins params file
+        pdf = get_fermi_pdf_sampler(Ebins, Edep=True)
     else:
         pdf = None
 
@@ -110,18 +110,17 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
         temp_folder = os.path.join(output_path, temp)
         os.makedirs(temp_folder, exist_ok=True)
 
-        #nach oben verschoben da weniger overhead
+        # nach oben verschoben da weniger overhead
         E = np.linspace(float(Ebins[0]), float(Ebins[len(Ebins) - 1]), 1000000, endpoint=False)
         pdf_E = params.Edep[temp](E)  # template specific energy dependence
         pdf_E_samp = PDFSampler(E, pdf_E)
 
         # For each chunk
         for chunk in range(n_chunk):
-            #poissonian energy dependence part 1
+            # poissonian energy dependence part 1
             # E = np.linspace(float(Ebins[0]), float(Ebins[len(Ebins) - 1]), 1000000, endpoint=False)
             # pdf_E = params.Edep[temp](E) #template specific energy dependence
             # pdf_E_samp = PDFSampler(E, pdf_E)
-
 
             # Draw the (log) amplitude
             a = np.asarray([random.uniform(prior_dict[temp][0], prior_dict[temp][1])
@@ -137,26 +136,24 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
                 sim_maps = np.asarray([random_draw_fn(a[i] * t_masked_compressed)
                                        for i in range(n_sim_per_chunk)])
 
-            map_arr = np.zeros((n_sim_per_chunk, sim_maps[1].size, len(Ebins)-1), dtype=np.int32) # 50x7700x3
+            map_arr = np.zeros((n_sim_per_chunk, sim_maps[1].size, len(Ebins) - 1), dtype=np.int32)  # 50x7700x3
 
-
-            #poissonian energy dependence part 2
-            current_index=0
-            for i in sim_maps: #7749
+            # poissonian energy dependence part 2
+            current_index = 0
+            for i in sim_maps:  # 7749
 
                 pix_counts = np.repeat(range(len(i)), i)
                 E = pdf_E_samp(pix_counts.size)
                 Eind = np.digitize(E, Ebins)
-                #print(Eind.size)
-                np.add.at(map_arr[current_index], (pix_counts, Eind-1), int(1))
-                current_index+=1
+                # print(Eind.size)
+                np.add.at(map_arr[current_index], (pix_counts, Eind - 1), int(1))
+                current_index += 1
 
-                #info
-            #a shape: (50,) chunk size
-            #sim_maps shape: (50, 7749) chunk size pix size
+                # info
+            # a shape: (50,) chunk size
+            # sim_maps shape: (50, 7749) chunk size pix size
 
-            #print(sim_maps.shape)
-
+            # print(sim_maps.shape)
 
             # Save settings
             if chunk == 0 and int(job_id) == 0:
@@ -200,6 +197,7 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
                 plt.close("all")
 
     # Initialise Ray
+
     if t_ps:
         ray.init(**ray_settings)
         if "num_cpus" in ray_settings.keys():
@@ -212,11 +210,12 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
         # Define a function for the simulation of the point-source models
         @ray.remote
         def create_simulated_map(skew_, loc_, scale_, flux_lims_, enforce_upper_flux_, t_, exp_, pdf_, name_,
-                                 inds_outside_roi_,Edep , size_approx_mean_=10000, flux_log_=False):
+                                 inds_outside_roi_, Edep, size_approx_mean_=10000, flux_log_=False):
             from .ps_mc import run
             assert np.all(np.isfinite(flux_lims_)), "Flux limits must be finite!"
             max_total_flux = flux_lims_[1] if enforce_upper_flux_ else -np.infty
 
+            plot_psf = True
             # Draw the desired flux
             if flux_log_:
                 flux_desired = 10 ** np.random.uniform(*flux_lims_)
@@ -243,20 +242,22 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
 
             # Do MC run
             map_, n_phot_, flux_arr_out = run(np.asarray(flux_arr_), t_, exp_, pdf_, Edep, Ebins, name_, save=False,
-                                              getnopsf=False, #True versuchen
+                                              getnopsf=False,  # True versuchen
                                               getcts=True, upscale_nside=16384, verbose=False, is_nest=True,
                                               inds_outside_roi=inds_outside_roi_, clean_count_list=False)
 
+
             return map_, n_phot_, flux_arr_out
+
+
 
         # Do the point-source models
         for temp in t_ps:
             print("Starting with point-source model '{:}'".format(temp))
             t = temp_dict["T_flux"][temp]  # for point-sources: template after REMOVING the exposure correction is used
 
-            #Add energy dependence
+            # Add energy dependence
             pdf_E = params.Edep[temp]
-
 
             # Apply slightly larger mask
             t_masked = t * (1 - total_mask_neg_safety)
@@ -310,13 +311,11 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
                 sim_maps, n_phot, flux_arr = map(list, zip(*ray.get(
                     [create_simulated_map.remote(skew_draw[i_PS], mean_draw[i_PS], np.sqrt(var_draw[i_PS]),
                                                  flux_lims_corr, prior_dict[temp]["enforce_upper_flux"],
-                                                 t_final_id, exp_id, pdf_id, "map_" + temp,Edep=pdf_E,
+                                                 t_final_id, exp_id, pdf_id, "map_" + temp, Edep=pdf_E,
                                                  flux_log_=prior_dict[temp]["flux_log"],
                                                  inds_outside_roi_=inds_ps_outside_roi_id, )
                      for i_PS in range(n_sim_per_chunk)])))
                 sim_maps = np.asarray(sim_maps)
-
-
 
                 # Apply ROI mask again and cut off counts outside ROI
                 sim_maps = np.asarray(sim_maps) * np.expand_dims((1 - total_mask_neg), [0, -1])
@@ -328,10 +327,8 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
 
                 # The following assert is for the scenario where there is leakage INTO and OUT OF the ROI, and n_phot
                 # contains ALL the counts (and only those counts) from PSs within the ROI.
-                #assert np.all(sim_maps[:, :, :].sum(1) == [n_phot[i].sum() for i in range(n_sim_per_chunk)]), \
-                #"Photons counts in maps and n_phot lists are not consistent! Aborting..." #warum ein .sum(1)
-
-
+                # assert np.all(sim_maps[:, :, :].sum(1) == [n_phot[i].sum() for i in range(n_sim_per_chunk)]), \
+                # "Photons counts in maps and n_phot lists are not consistent! Aborting..." #warum ein .sum(1)
 
                 # Collect garbage
                 auto_garbage_collect()
@@ -386,3 +383,7 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
     print("Done! Computation took {0} seconds.".format(time.time() - start_time))
     print(dash)
     # Loading pickle file e.g.: data = pickle.load( open( "./data/<...>.pickle", "rb" ) )
+
+
+def get_psf():
+    return None
