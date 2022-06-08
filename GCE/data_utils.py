@@ -214,11 +214,7 @@ def fermi_psf(r, Ebins):
     :param r: distance in radians from the centre of the point source
     :return: Fermi PSF as a list in the order of the energy bins
     """
-    #TODO PSF energy dependend machen
     # Define parameters that specify the Fermi-LAT PSF at 2 GeV
-
-    #TODO die parameter mit energie abhängigen funktionen ersetzten
-    #TODO array aus verschiedenen Kingsprofiles zu den unterschiedlichen energy bins
 
     fermi_psf_inner_list = []
 

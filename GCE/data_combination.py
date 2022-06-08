@@ -320,7 +320,7 @@ def combine_template_maps(save_filenames, params, job_id=None, train_range=None,
                     # Add to combined map
                     combined_map += temp_map
                     # Calculate flux
-                    flux = temp_map / np.expand_dims(exp_indices_roi, [0, 2]) #TODO ergebnis überprüfen
+                    flux = temp_map / np.expand_dims(exp_indices_roi, [0, 2])
                     # Total flux of template: sum over pixels
                     total_flux_dict[temp] += flux.sum(1)
                     #print(total_flux_dict["bub"].shape) (50, 7)
@@ -328,8 +328,7 @@ def combine_template_maps(save_filenames, params, job_id=None, train_range=None,
             # Calculate flux fractions
             total_flux = np.asarray([v for k, v in total_flux_dict.items()]).sum(0)
             for temp in t_p + t_ps:
-                #TODO Quick fix
-                flux_fraction_dict[temp] = total_flux_dict[temp] / total_flux #ASK über bins oder über bins und batches
+                flux_fraction_dict[temp] = total_flux_dict[temp] / total_flux
                 for vec_ind, vec in enumerate(flux_fraction_dict[temp]):
                     for index, bin_entry in enumerate(vec):
                         if math.isnan(bin_entry):
@@ -360,7 +359,7 @@ def combine_template_maps(save_filenames, params, job_id=None, train_range=None,
 
 
             # Store in "data_out" dictionary
-            data_out["data"] = combined_map   #ASK why transposed? .T
+            data_out["data"] = combined_map
             data_out["flux_fraction"] = flux_fraction_dict
             data_out["info"] = info_dict_comb
             # Now: compute histograms

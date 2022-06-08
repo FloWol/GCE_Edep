@@ -180,31 +180,45 @@ def get_params(int_flag=0):
     Edep_dict = DotDict()
 
     # Poissonian
+    Edep_dict["dif_O_pibs"] = {"mean_exp": [-0.6, 0], "var_exp": 10, "skew_std": 3}
+    Edep_dict["dif_O_ic"] = {"mean_exp": [-1.1, 0], "var_exp": 40, "skew_std": 3}
+    Edep_dict["iso"] = {"mean_exp": [0.47, -1], "var_exp": 10, "skew_std": 3}
+    Edep_dict["bub"] = {"mean_exp": [0.6, 1.04], "var_exp": 3, "skew_std": 0.0}
+    Edep_dict["gce_12"] = {"mean_exp": [0, 0.69], "var_exp": 10, "skew_std": 3}
 
-    def bub_energy(E):
-        return np.ones_like(E)
+
+
+
+    # def bub_energy(E):
+    #     return np.ones_like(E)
 
     # Point sources
+    Edep_dict["gce_12_PS"] = {"mean_exp": [0, 0.69], "var_exp": 10, "skew_std": 3}
+    Edep_dict["thin_disk_PS"] = {"mean_exp": [-1, 0.477], "var_exp": 10, "skew_std": 3.5}
+    Edep_dict["iso_PS"] = {"mean_exp": [0, 0.69], "var_exp": 10, "skew_std": 3} #whats iso PS
 
-    #TODO sollte nur einmal gesamelt werden
-    def gce_12_PS_energy(E):  # for test
-        pdf = np.ones_like(E)
-        # pdf = np.zeros_like(E)
-        # for index, val in enumerate(E):
-        #     if val < 5:
-        #         pdf[index] = 1
-        return pdf
 
-    def thin_disk_PS_energy(E):
-        return np.ones_like(E)
 
-    def iso_PS_energy(E): #for test
-        pdf=np.zeros_like(E)
-        for index, val in enumerate(E):
-            if val > 5:
-                pdf[index] = 1
-        return pdf
 
+
+    # def gce_12_PS_energy(E):  # for test
+    #     pdf = np.zeros_like(E)
+    #     for index, val in enumerate(E):
+    #         if val < 5:
+    #             pdf[index] = 1
+    #     return pdf
+    #
+    # def thin_disk_PS_energy(E):
+    #     return np.ones_like(E)
+    #
+    # def iso_PS_energy(E): #for test
+    #     pdf=np.zeros_like(E)
+    #     for index, val in enumerate(E):
+    #         if val > 5:
+    #             pdf[index] = 1
+    #     return pdf
+
+    Edep_dict["Edep_psf"] = True
     Edep_dict["bub"] = bub_energy
     Edep_dict["gce_12_PS"] = gce_12_PS_energy
     Edep_dict["thin_disk_PS"] = thin_disk_PS_energy
@@ -304,7 +318,7 @@ def get_params(int_flag=0):
     p_train = DotDict()
     # Note: the batch sizes specified below set the GLOBAL batch size.
     # For example, setting p_train['batch_size'] = 256 yields n_batch = 64 on each GPU when using 4 GPUs.
-    p_train['num_steps'] = 500  # number of steps to do (total number of maps shown is num_steps * batch_size)
+    p_train['num_steps'] = 50  # number of steps to do (total number of maps shown is num_steps * batch_size)
     p_train['batch_size'] = 16  # number of samples per training batch. Should be a power of 2 for greater speed
     p_train['batch_size_val'] = 16  # number of samples per validation batch
     p_train['prefetch_batch_buffer'] = 5  # number of batches to prefetch for training data

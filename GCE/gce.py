@@ -179,6 +179,7 @@ class Analysis:
         """
         nside = self.p.data["nside"]
         self.p.data["N_bins"] = len(self.p.data["Ebins"])-1
+        Edep_psf = self.p.Edep["Edep_psf"]
 
         # Root folders for checkpoints, summaries, parameters, and figures
         if "gen" in self.p.keys():
@@ -519,10 +520,9 @@ class Analysis:
 
     def psf_make_map(self, temp):
         """
-        Generate simulated template maps that can later be combined for training, validation, and testing.
-        :param ray_settings: settings passed to ray when calling ray.init()
-        :param n_example_plots: number of maps to plot and save for each template (as a quick check)
-        :param job_id: if running several jobs for the data generation: ID of the current job
+        Generate simulated template map to test the energy dependend point spread functions
+        :param temp: single template for sampling
+
         """
         required_keys = ("gen", "data", "mod", "tt")
         self._check_keys_exist(required_keys)
@@ -561,7 +561,7 @@ class Analysis:
 
         sim_maps, map_arr_no_psf, num_phot_cleaned, flux_arr_return = make_map(np.asarray([100]), t_final, np.ones_like(exp) ,
                                                     get_fermi_pdf_sampler(Ebins), pdf_E, Ebins,
-                                                    is_nest=True, inds_outside_roi=inds_ps_outside_roi, clean_count_list=False)
+                                                    is_nest=True, inds_outside_roi=inds_ps_outside_roi, clean_count_list=False, Edep_psf=self.p.Edep["Edep_psf"])
 
         nside = self.p.data["nside"]
         mask_type = self.p.data["mask_type"]
@@ -842,7 +842,7 @@ class Analysis:
                         metric_val_eval = distributed_get_metrics(val_data, val_labels, global_size_val,
                                                                   training=False)
                         for i_metric, metric in enumerate(metric_list):
-                             tf.summary.scalar("val_metrics/" + which + '/' + metric, np.mean(metric_val_eval[i_metric]), #Pfusch hier sum
+                             tf.summary.scalar("val_metrics/" + which + '/' + metric, np.mean(metric_val_eval[i_metric]), #Pfusch hier sum #TODO
                                                step=global_step)
 
                 # Reached end of training?

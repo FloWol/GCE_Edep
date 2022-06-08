@@ -43,7 +43,6 @@ class PDFSampler:
 
 
 
-        xvals_list = []
         distances=np.zeros(shape=Eind.shape)
 
         for index in range(0, self.n_Ebins-1):

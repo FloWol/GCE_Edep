@@ -52,8 +52,8 @@ def random_u_grade_ang(m_inds, nside_in=0, nside_out=16384, is_nest=False):
     return th_out, ph_out
 
 
-def run(flux_arr, temp, exp, pdf_psf_sampler, Edep, Ebins,name="map", save=False, getnopsf=False, getcts=False, upscale_nside=16384,
-        verbose=False, clean_count_list=False, inds_outside_roi=None, is_nest=False):
+def run(flux_arr, temp, exp, pdf_psf_sampler, pdf_E_samp, Ebins,name="map", save=False, getnopsf=False, getcts=False, upscale_nside=16384,
+        verbose=False, clean_count_list=False, inds_outside_roi=None, is_nest=False, Edep_psf=True):
     """
     Runs point source Monte Carlo by reading in template, source count distribution parameters, exposure
     map, and the user defined PSF.
@@ -82,8 +82,8 @@ def run(flux_arr, temp, exp, pdf_psf_sampler, Edep, Ebins,name="map", save=False
     """
 
     # Generate simulated counts map
-    map_arr, map_arr_no_psf, cts_arr, flux_arr_out = make_map(flux_arr, temp, exp, pdf_psf_sampler, Edep, Ebins,upscale_nside,
-                                                              verbose, clean_count_list, inds_outside_roi, is_nest)
+    map_arr, map_arr_no_psf, cts_arr, flux_arr_out = make_map(flux_arr, temp, exp, pdf_psf_sampler, pdf_E_samp, Ebins,upscale_nside,
+                                                              verbose, clean_count_list, inds_outside_roi, is_nest, Edep_psf)
     # Save the file as an .npy file
     if save:
         np.save(str(name) + ".npy", np.array(map_arr).astype(np.int32))
@@ -110,8 +110,8 @@ def run(flux_arr, temp, exp, pdf_psf_sampler, Edep, Ebins,name="map", save=False
             return map_arr_return
 
 
-def make_map(flux_arr, temp, exp, pdf_psf_sampler, Edep, Ebins,upscale_nside=16384, verbose=False, clean_count_list=True,
-             inds_outside_roi=None, is_nest=False):
+def make_map(flux_arr, temp, exp, pdf_psf_sampler, pdf_E_samp, Ebins, upscale_nside=16384, verbose=False, clean_count_list=True,
+             inds_outside_roi=None, is_nest=False, Edep_psf=True):
     """
     Given an array of fluxes for each source, template & exposure map, and user defined PSF, simulates and returns
       1) a counts map,
@@ -124,6 +124,7 @@ def make_map(flux_arr, temp, exp, pdf_psf_sampler, Edep, Ebins,upscale_nside=163
     :param temp: array of template: MUST BE NORMALISED TO SUM UP TO UNITY!
     :param exp: array of exposure map
     :param pdf_psf_sampler: user-defined PSF: object of type PDFSampler (see class above). Can be None (no PSF).
+    :param pdf_E_samp: Pre intitialised sampler to sample the photon energies from
     :param Ebins: Energy bins
     :param upscale_nside: nside to use for randomly determining the PS location *within* each pixel
     :param verbose: print when starting
@@ -208,10 +209,6 @@ def make_map(flux_arr, temp, exp, pdf_psf_sampler, Edep, Ebins,upscale_nside=163
 
     ##################################################################
     # Do an Energy sampling for every pixel in pixel_counts right here
-    #Todo die ersten paar schritte kann man außerhalb des loops machen
-    E = np.linspace(float(Ebins[0]), float(Ebins[len(Ebins) - 1]), 1000000, endpoint=False)
-    pdf_E = Edep(E)
-    pdf_E_samp = PDFSampler(E, pdf_E)
     E = pdf_E_samp(pix_counts.size)
     Eind = np.digitize(E, Ebins)
     # print(Eind.size)
@@ -245,9 +242,7 @@ def make_map(flux_arr, temp, exp, pdf_psf_sampler, Edep, Ebins,upscale_nside=163
 
         # Sample distances from PSF for each source photon.
         n_counts_tot = num_phot.sum() # num_phot.sum() == pix_counts.size() conversion from count space to sky map pixels
-        #Todo schönere lösung
-        psf_Edep=True
-        if psf_Edep==True:
+        if Edep_psf==True:
             dist_flat = pdf_psf_sampler(Eind)  # list of distances for flattened counts, len: n_counts_tot
         else:
             dist_flat = pdf_psf_sampler(n_counts_tot) #or PDFSampler
@@ -308,6 +303,5 @@ def make_map(flux_arr, temp, exp, pdf_psf_sampler, Edep, Ebins,upscale_nside=163
     # Return map, map before PSF, and num_phot_cleaned
     return map_arr, map_arr_no_psf, num_phot_cleaned, flux_arr_return
 
-#TODO energie in PSF einbauentemplatespower law für jedes template
 
 
