@@ -8,7 +8,7 @@ import GCE.gce
 gce = GCE.gce.Analysis()
 gce.load_params("../parameter_files/parameters.py")
 gce.print_params()
-#gce.psf_make_map("gce_12_PS")
+#gce.psf_make_map("bub")
 
 # Ray settings (for parallelized data generation)
 # ray.shutdown() #delete old rays if there are any
