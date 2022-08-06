@@ -14,6 +14,7 @@ import ray
 import time
 import warnings
 from .pdf_sampler import PDFSampler
+from .skew_cdf_sampler import CDFSampler
 from .pdf_energy_sampler import PDFSampler as PDF_Energy_Sampler
 
 
@@ -42,7 +43,7 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
     mask_type = params.data["mask_type"]
     do_fermi_psf = params.data["psf"]
     leakage_delta = params.data["leakage_delta"] if do_fermi_psf else 0
-    Ebins = params.data["Ebins"]  # PFUSCH
+    Ebins = params.data["Ebins"]
 
     if "db" in params.keys():
         do_poisson_scatter_p = False if params.db["deactivate_poiss_scatter_for_P"] else True
@@ -115,16 +116,18 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
         os.makedirs(temp_folder, exist_ok=True)
 
         # nach oben verschoben da weniger overhead
-        E = np.linspace(float(Ebins[0]), float(Ebins[len(Ebins) - 1]), 1000000, endpoint=False)
-        pdf_E = params.Edep[temp](E)  # template specific energy dependence
-        pdf_E_samp = PDFSampler(E, pdf_E)
+        # E = np.linspace(float(Ebins[0]), float(Ebins[len(Ebins) - 1]), 1000000, endpoint=False)
+        # pdf_E = params.Edep[temp](E)  # template specific energy dependence
+        # pdf_E_samp = PDFSampler(E, pdf_E)
 
         # For each chunk
         for chunk in range(n_chunk):
-            # poissonian energy dependence part 1
-            # E = np.linspace(float(Ebins[0]), float(Ebins[len(Ebins) - 1]), 1000000, endpoint=False)
-            # pdf_E = params.Edep[temp](E) #template specific energy dependence
-            # pdf_E_samp = PDFSampler(E, pdf_E)
+
+            mean_draw_E = np.random.uniform(*params.Edep[temp]["mean_exp"], size=n_sim_per_chunk)
+            var_draw_E = params.Edep[temp]["var_exp"] * np.random.chisquare(1, size=n_sim_per_chunk)
+            skew_draw_E = np.random.normal(loc=0, scale=params.Edep[temp]["skew_std"], size=n_sim_per_chunk)
+
+
 
             # Draw the (log) amplitude
             a = np.asarray([random.uniform(prior_dict[temp][0], prior_dict[temp][1])
@@ -143,15 +146,21 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
             map_arr = np.zeros((n_sim_per_chunk, sim_maps[1].size, len(Ebins) - 1), dtype=np.int32)  # 50x7700x3
 
             # poissonian energy dependence part 2
-            current_index = 0
+            current_map = 0
+            x = np.linspace(Ebins[0], Ebins[-1],100)  # BOTTLENECK Skewnorm.cdf benötigt sehr lange wenn size > 1000 #evtl im pdfsampler interpolieren
             for i in sim_maps:  # 7749
 
                 pix_counts = np.repeat(range(len(i)), i)
-                E = pdf_E_samp(pix_counts.size)
-                Eind = np.digitize(E, Ebins)
+                cdf = stats.skewnorm.cdf(np.log(x), a=skew_draw_E[current_map], loc=mean_draw_E[current_map], scale=np.sqrt(var_draw_E[current_map]))
+                Energy_Sampler = PDFSampler(xvals=x,pofx=None,cdf=cdf)
+                E_draw = Energy_Sampler(pix_counts.size) #PFUSCH auf logarithm aufpassen
+                # E = pdf_E_samp(pix_counts.size)
+                Eind = np.digitize(E_draw, Ebins, right=True) #nur ein QUICKFIX
                 # print(Eind.size)
-                np.add.at(map_arr[current_index], (pix_counts, Eind - 1), int(1))
-                current_index += 1
+
+
+                np.add.at(map_arr[current_map], (pix_counts, Eind - 1), int(1)) #FIXME jetzt werden Ebins auch außerhalb gesampelt
+                current_map += 1
 
                 # info
             # a shape: (50,) chunk size
@@ -307,6 +316,10 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
                 mean_draw = np.random.uniform(*prior_dict[temp]["mean_exp"], size=n_sim_per_chunk)
                 var_draw = prior_dict[temp]["var_exp"] * np.random.chisquare(1, size=n_sim_per_chunk)
                 skew_draw = np.random.normal(loc=0, scale=prior_dict[temp]["skew_std"], size=n_sim_per_chunk)
+
+                mean_draw_E= np.random.uniform(*params.Edep[temp]["mean_exp"], size=n_sim_per_chunk)
+                var_draw_E = params.Edep[temp]["var_exp"] * np.random.chisquare(1, size=n_sim_per_chunk)
+                skew_draw_E = np.random.normal(loc=0, scale=params.Edep[temp]["skew_std"], size=n_sim_per_chunk)
 
                 # This code is for debugging without ray
                 # sim_maps, n_phot, flux_arr = create_simulated_map(skew_draw[0], mean_draw[0], np.sqrt(var_draw[0]),
