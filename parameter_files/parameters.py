@@ -115,7 +115,7 @@ def get_params(int_flag=0):
     p_data["nside"] = int(128)  # nside resolution parameter of the data
     p_data["exposure"] = "Fermi"  # one of "Fermi", "Fermi_mean", or constant integer
     p_data["psf"] = True  # if True: apply Fermi PSF to PS templates when generating PS maps
-    p_data["Ebins"] = np.array([2,5,23])#np.array([0.3,0.69,1.4])#np.array([0.1, 0.2, 0.3, 0.5, 0.8, 1.5, 10])
+    p_data["Ebins"] = np.array([0.1,20,100])#np.array([0.3,0.69,1.4])#np.array([0.1, 0.2, 0.3, 0.5, 0.8, 1.5, 10])
     # (see the function fermi_psf() in data_utils.py)
     p["data"] = p_data
 
@@ -126,12 +126,12 @@ def get_params(int_flag=0):
     # p_mod["models_P"] = ["dif_O_pibs", "dif_O_ic", "iso", "bub"]  # list of Poissonian templates
     p_mod["models_P"] = ["dif_O_pibs", "bub"]  # list of Poissonian templates
     # p_mod["models_PS"] = ["gce_12_PS", "thin_disk_PS"]  # list of PS templates
-    p_mod["models_PS"] = []#["gce_12_PS", "iso_PS"]  # list of PS templates
+    p_mod["models_PS"] = ["gce_12_PS", "iso_PS"]  # list of PS templates
     # Note: point-source models use the same names as the Poissonian models, but with a trailing "_PS"!
     # p_mod["model_names_P"] = [r"diffuse $\pi^0$ + BS", "diffuse IC", "isotropic", r"$\it{Fermi}$ bubbles"]  # names: P
     p_mod["model_names_P"] = [r"diffuse $\pi^0$ + BS", r"$\it{Fermi}$ bubbles"]
     #p_mod["model_names_P"] = []#[r"$\it{Fermi}$ bubbles"]  # names: P
-    p_mod["model_names_PS"] = []#["GCE", "isotropic PS"]  # names: PS
+    p_mod["model_names_PS"] = ["GCE", "isotropic PS"]  # names: PS
     p["mod"] = p_mod
 
     # Template map settings (for training and testing maps)
@@ -194,36 +194,36 @@ def get_params(int_flag=0):
     #     return np.ones_like(E)
 
     # Point sources
-    Edep_dict["gce_12_PS"] = {"mean_exp": [0, 0.69], "var_exp": 10, "skew_std": 3}
-    Edep_dict["thin_disk_PS"] = {"mean_exp": [-1, 0.477], "var_exp": 10, "skew_std": 3.5}
-    Edep_dict["iso_PS"] = {"mean_exp": [0, 0.69], "var_exp": 10, "skew_std": 3} #whats iso PS
+    #Edep_dict["gce_12_PS"] = {"mean_exp": [0, 0.69], "var_exp": 10, "skew_std": 3}
+    #Edep_dict["thin_disk_PS"] = {"mean_exp": [-1, 0.477], "var_exp": 10, "skew_std": 3.5}
+    #Edep_dict["iso_PS"] = {"mean_exp": [0, 0.69], "var_exp": 10, "skew_std": 3} #whats iso PS
 
 
 
 
 
-    # def gce_12_PS_energy(E):  # for test
-    #     pdf = np.zeros_like(E)
-    #     for index, val in enumerate(E):
-    #         if val < 5:
-    #             pdf[index] = 1
-    #     return pdf
-    #
-    # def thin_disk_PS_energy(E):
-    #     return np.ones_like(E)
-    #
-    # def iso_PS_energy(E): #for test
-    #     pdf=np.zeros_like(E)
-    #     for index, val in enumerate(E):
-    #         if val > 5:
-    #             pdf[index] = 1
-    #     return pdf
+    def gce_12_PS_energy(E):  # for test
+        pdf = np.zeros_like(E)
+        for index, val in enumerate(E):
+            if val < 50:
+                pdf[index] = 1
+        return pdf
+
+    def thin_disk_PS_energy(E):
+        return np.ones_like(E)
+
+    def iso_PS_energy(E): #for test
+        pdf=np.zeros_like(E)
+        for index, val in enumerate(E):
+            if val > 50:
+                pdf[index] = 1
+        return pdf
 
     Edep_dict["Edep_psf"] = True
     # Edep_dict["bub"] = bub_energy
-    # Edep_dict["gce_12_PS"] = gce_12_PS_energy
-    # Edep_dict["thin_disk_PS"] = thin_disk_PS_energy
-    # Edep_dict["iso_PS"] = iso_PS_energy
+    Edep_dict["gce_12_PS"] = gce_12_PS_energy
+    Edep_dict["thin_disk_PS"] = thin_disk_PS_energy
+    Edep_dict["iso_PS"] = iso_PS_energy
     p["Edep"] = Edep_dict
 
     # Settings for combining template maps

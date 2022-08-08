@@ -147,12 +147,12 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
 
             # poissonian energy dependence part 2
             current_map = 0
-            x = np.linspace(Ebins[0], Ebins[-1],100)  # BOTTLENECK Skewnorm.cdf benötigt sehr lange wenn size > 1000 #evtl im pdfsampler interpolieren
+            x = Ebins #np.linspace(Ebins[0], Ebins[-1],len(Ebins))  # BOTTLENECK Skewnorm.cdf benötigt sehr lange wenn size > 1000 #evtl im pdfsampler interpolieren
             for i in sim_maps:  # 7749
 
                 pix_counts = np.repeat(range(len(i)), i)
-                cdf = stats.skewnorm.cdf(np.log(x), a=skew_draw_E[current_map], loc=mean_draw_E[current_map], scale=np.sqrt(var_draw_E[current_map]))
-                Energy_Sampler = PDFSampler(xvals=x,pofx=None,cdf=cdf)
+                cdf = stats.skewnorm.cdf(np.log10(x), a=skew_draw_E[current_map], loc=mean_draw_E[current_map], scale=np.sqrt(var_draw_E[current_map]))
+                Energy_Sampler = CDFSampler(xvals=x,cdf=cdf)
                 E_draw = Energy_Sampler(pix_counts.size) #PFUSCH auf logarithm aufpassen
                 # E = pdf_E_samp(pix_counts.size)
                 Eind = np.digitize(E_draw, Ebins, right=True) #nur ein QUICKFIX
@@ -317,9 +317,9 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
                 var_draw = prior_dict[temp]["var_exp"] * np.random.chisquare(1, size=n_sim_per_chunk)
                 skew_draw = np.random.normal(loc=0, scale=prior_dict[temp]["skew_std"], size=n_sim_per_chunk)
 
-                mean_draw_E= np.random.uniform(*params.Edep[temp]["mean_exp"], size=n_sim_per_chunk)
-                var_draw_E = params.Edep[temp]["var_exp"] * np.random.chisquare(1, size=n_sim_per_chunk)
-                skew_draw_E = np.random.normal(loc=0, scale=params.Edep[temp]["skew_std"], size=n_sim_per_chunk)
+                # mean_draw_E= np.random.uniform(*params.Edep[temp]["mean_exp"], size=n_sim_per_chunk)
+                # var_draw_E = params.Edep[temp]["var_exp"] * np.random.chisquare(1, size=n_sim_per_chunk)
+                # skew_draw_E = np.random.normal(loc=0, scale=params.Edep[temp]["skew_std"], size=n_sim_per_chunk)
 
                 # This code is for debugging without ray
                 # sim_maps, n_phot, flux_arr = create_simulated_map(skew_draw[0], mean_draw[0], np.sqrt(var_draw[0]),
