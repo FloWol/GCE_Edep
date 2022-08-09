@@ -124,12 +124,12 @@ def get_params(int_flag=0):
     ###################################
     p_mod = DotDict()
     # p_mod["models_P"] = ["dif_O_pibs", "dif_O_ic", "iso", "bub"]  # list of Poissonian templates
-    p_mod["models_P"] = ["dif_O_pibs", "bub"]  # list of Poissonian templates
+    p_mod["models_P"] = ["bub"]#["dif_O_pibs", "bub"]  # list of Poissonian templates
     # p_mod["models_PS"] = ["gce_12_PS", "thin_disk_PS"]  # list of PS templates
     p_mod["models_PS"] = ["gce_12_PS", "iso_PS"]  # list of PS templates
     # Note: point-source models use the same names as the Poissonian models, but with a trailing "_PS"!
     # p_mod["model_names_P"] = [r"diffuse $\pi^0$ + BS", "diffuse IC", "isotropic", r"$\it{Fermi}$ bubbles"]  # names: P
-    p_mod["model_names_P"] = [r"diffuse $\pi^0$ + BS", r"$\it{Fermi}$ bubbles"]
+    p_mod["model_names_P"] = [r"$\it{Fermi}$ bubbles"]#[r"diffuse $\pi^0$ + BS", r"$\it{Fermi}$ bubbles"]
     #p_mod["model_names_P"] = []#[r"$\it{Fermi}$ bubbles"]  # names: P
     p_mod["model_names_PS"] = ["GCE", "isotropic PS"]  # names: PS
     p["mod"] = p_mod
@@ -140,8 +140,8 @@ def get_params(int_flag=0):
     p_tt["data_name"] = "Example"  # name of data folder for the template maps
     p_tt["filename_base"] = "Maps"  # name basis of template map files
     p_tt["poisson_A_is_log"] = False  # is log10(A) rather than A specified for the Poissonian templates in prior_dict?
-    p_tt["n_chunk"] = int(100)  # number of chunks to compute per job
-    p_tt["n_sim_per_chunk"] = int(50)  # number of simulations per chunk and per model (one output file per chunk)
+    p_tt["n_chunk"] = int(1000)  # number of chunks to compute per job
+    p_tt["n_sim_per_chunk"] = int(100)  # number of simulations per chunk and per model (one output file per chunk)
     # Note: the total number of maps for each template will be "n_chunk" * "n_sim_per_chunk" (* # jobs)
     p_tt["add_two_temps_PS"] = ["iso_PS"]  # list of PS templates for which TWICE the number of maps will be generated.
     # Later, these maps can be added pairwise, modeling two distinct populations.
@@ -194,36 +194,36 @@ def get_params(int_flag=0):
     #     return np.ones_like(E)
 
     # Point sources
-    #Edep_dict["gce_12_PS"] = {"mean_exp": [0, 0.69], "var_exp": 10, "skew_std": 3}
-    #Edep_dict["thin_disk_PS"] = {"mean_exp": [-1, 0.477], "var_exp": 10, "skew_std": 3.5}
-    #Edep_dict["iso_PS"] = {"mean_exp": [0, 0.69], "var_exp": 10, "skew_std": 3} #whats iso PS
+    Edep_dict["gce_12_PS"] = {"mean_exp": [0, 0.69], "var_exp": 10, "skew_std": 3}
+    Edep_dict["thin_disk_PS"] = {"mean_exp": [-1, 0.477], "var_exp": 10, "skew_std": 3.5}
+    Edep_dict["iso_PS"] = {"mean_exp": [0, 0.69], "var_exp": 10, "skew_std": 3} #whats iso PS
 
 
 
 
 
-    def gce_12_PS_energy(E):  # for test
-        pdf = np.zeros_like(E)
-        for index, val in enumerate(E):
-            if val < 50:
-                pdf[index] = 1
-        return pdf
-
-    def thin_disk_PS_energy(E):
-        return np.ones_like(E)
-
-    def iso_PS_energy(E): #for test
-        pdf=np.zeros_like(E)
-        for index, val in enumerate(E):
-            if val > 50:
-                pdf[index] = 1
-        return pdf
+    # def gce_12_PS_energy(E):  # for test
+    #     pdf = np.zeros_like(E)
+    #     for index, val in enumerate(E):
+    #         if val < 50:
+    #             pdf[index] = 1
+    #     return pdf
+    #
+    # def thin_disk_PS_energy(E):
+    #     return np.ones_like(E)
+    #
+    # def iso_PS_energy(E): #for test
+    #     pdf=np.zeros_like(E)
+    #     for index, val in enumerate(E):
+    #         if val > 50:
+    #             pdf[index] = 1
+    #     return pdf
 
     Edep_dict["Edep_psf"] = True
     # Edep_dict["bub"] = bub_energy
-    Edep_dict["gce_12_PS"] = gce_12_PS_energy
-    Edep_dict["thin_disk_PS"] = thin_disk_PS_energy
-    Edep_dict["iso_PS"] = iso_PS_energy
+    # Edep_dict["gce_12_PS"] = gce_12_PS_energy
+    # Edep_dict["thin_disk_PS"] = thin_disk_PS_energy
+    # Edep_dict["iso_PS"] = iso_PS_energy
     p["Edep"] = Edep_dict
 
     # Settings for combining template maps
@@ -319,8 +319,8 @@ def get_params(int_flag=0):
     p_train = DotDict()
     # Note: the batch sizes specified below set the GLOBAL batch size.
     # For example, setting p_train['batch_size'] = 256 yields n_batch = 64 on each GPU when using 4 GPUs.
-    p_train['num_steps'] = 50  # number of steps to do (total number of maps shown is num_steps * batch_size)
-    p_train['batch_size'] = 16  # number of samples per training batch. Should be a power of 2 for greater speed
+    p_train['num_steps'] = 3000#2500    # number of steps to do (total number of maps shown is num_steps * batch_size)
+    p_train['batch_size'] = 32  # number of samples per training batch. Should be a power of 2 for greater speed
     p_train['batch_size_val'] = 16  # number of samples per validation batch
     p_train['prefetch_batch_buffer'] = 5  # number of batches to prefetch for training data
     p_train['prefetch_batch_buffer_val'] = 5  # number of batches to prefetch for validation data

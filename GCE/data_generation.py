@@ -224,7 +224,8 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
         # Define a function for the simulation of the point-source models
         @ray.remote
         def create_simulated_map(skew_, loc_, scale_, flux_lims_, enforce_upper_flux_, t_, exp_, pdf_, name_,
-                                 inds_outside_roi_, pdf_E_samp, size_approx_mean_=10000, flux_log_=False):
+                                 skew_draw_E, mean_draw_E, var_draw_E,
+                                 inds_outside_roi_, size_approx_mean_=10000, flux_log_=False):
             from .ps_mc import run
             assert np.all(np.isfinite(flux_lims_)), "Flux limits must be finite!"
             max_total_flux = flux_lims_[1] if enforce_upper_flux_ else -np.infty
@@ -254,6 +255,10 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
                 if tot_flux > max_total_flux:
                     n_sources = int(max(1, int(n_sources // 1.05)))
 
+            cdf = stats.skewnorm.cdf(np.log10(x), a=skew_draw_E, loc=mean_draw_E,
+                                     scale=np.sqrt(var_draw_E))
+            pdf_E_samp = CDFSampler(xvals=x, cdf=cdf)
+
             # Do MC run
             map_, n_phot_, flux_arr_out = run(np.asarray(flux_arr_), t_, exp_, pdf_, pdf_E_samp, Ebins, name_, save=False,
                                               getnopsf=False,  # True versuchen
@@ -269,12 +274,12 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
         for temp in t_ps:
             print("Starting with point-source model '{:}'".format(temp))
             t = temp_dict["T_flux"][temp]  # for point-sources: template after REMOVING the exposure correction is used
-
+            x = Ebins
             # Add energy dependence
             pdf_E = params.Edep[temp]
-            E = np.linspace(float(Ebins[0]), float(Ebins[len(Ebins) - 1]), 1000000, endpoint=False)
-            pdf_E_samp = PDFSampler(E,pdf_E(E))
-            pdf_E_samp_id = ray.put(pdf_E_samp)
+            # E = np.linspace(float(Ebins[0]), float(Ebins[len(Ebins) - 1]), 1000000, endpoint=False)
+            # pdf_E_samp = PDFSampler(E,pdf_E(E))
+            # pdf_E_samp_id = ray.put(pdf_E_samp)
 
             # Apply slightly larger mask
             t_masked = t * (1 - total_mask_neg_safety)
@@ -317,9 +322,14 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
                 var_draw = prior_dict[temp]["var_exp"] * np.random.chisquare(1, size=n_sim_per_chunk)
                 skew_draw = np.random.normal(loc=0, scale=prior_dict[temp]["skew_std"], size=n_sim_per_chunk)
 
-                # mean_draw_E= np.random.uniform(*params.Edep[temp]["mean_exp"], size=n_sim_per_chunk)
-                # var_draw_E = params.Edep[temp]["var_exp"] * np.random.chisquare(1, size=n_sim_per_chunk)
-                # skew_draw_E = np.random.normal(loc=0, scale=params.Edep[temp]["skew_std"], size=n_sim_per_chunk)
+                mean_draw_E= np.random.uniform(*params.Edep[temp]["mean_exp"], size=n_sim_per_chunk)
+                var_draw_E = params.Edep[temp]["var_exp"] * np.random.chisquare(1, size=n_sim_per_chunk)
+                skew_draw_E = np.random.normal(loc=0, scale=params.Edep[temp]["skew_std"], size=n_sim_per_chunk)
+
+                # cdf = stats.skewnorm.cdf(np.log10(x), a=skew_draw_E[current_map], loc=mean_draw_E[current_map],
+                #                          scale=np.sqrt(var_draw_E[current_map]))
+                # Energy_Sampler = CDFSampler(xvals=x, cdf=cdf)
+                # pdf_E_samp_id = ray.put(Energy_Sampler)
 
                 # This code is for debugging without ray
                 # sim_maps, n_phot, flux_arr = create_simulated_map(skew_draw[0], mean_draw[0], np.sqrt(var_draw[0]),
@@ -332,7 +342,8 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
                 sim_maps, n_phot, flux_arr = map(list, zip(*ray.get(
                     [create_simulated_map.remote(skew_draw[i_PS], mean_draw[i_PS], np.sqrt(var_draw[i_PS]),
                                                  flux_lims_corr, prior_dict[temp]["enforce_upper_flux"],
-                                                 t_final_id, exp_id, pdf_id, "map_" + temp, pdf_E_samp=pdf_E_samp_id,
+                                                 t_final_id, exp_id, pdf_id, "map_" + temp, skew_draw_E[i_PS], mean_draw_E[i_PS],
+                                                 np.sqrt(var_draw_E[i_PS]),
                                                  flux_log_=prior_dict[temp]["flux_log"],
                                                  inds_outside_roi_=inds_ps_outside_roi_id, )
                      for i_PS in range(n_sim_per_chunk)])))
@@ -406,5 +417,3 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
     # Loading pickle file e.g.: data = pickle.load( open( "./data/<...>.pickle", "rb" ) )
 
 
-def get_psf():
-    return None

@@ -210,9 +210,8 @@ def make_map(flux_arr, temp, exp, pdf_psf_sampler, pdf_E_samp, Ebins, upscale_ns
     ##################################################################
     # Do an Energy sampling for every pixel in pixel_counts right here
     E = pdf_E_samp(pix_counts.size)
-    Eind = np.digitize(E, Ebins)
-    # print(Eind.size)
-    # print(Eind.shape)
+    Eind = np.digitize(E, Ebins, right=True)
+
 
 
 
