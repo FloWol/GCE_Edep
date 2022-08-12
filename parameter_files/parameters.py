@@ -112,7 +112,7 @@ def get_params(int_flag=0):
     # (the margin is set in degrees here), allowing counts to leak into and out of the ROI.
     # Note: this is ignored if p_data["psf"] = False.
     p_data["mask_type"] = "3FGL"  # mask for known bright PSs: one of "None", "3FGL", "4FGL"
-    p_data["nside"] = int(128)  # nside resolution parameter of the data
+    p_data["nside"] = int(256)  # nside resolution parameter of the data
     p_data["exposure"] = "Fermi"  # one of "Fermi", "Fermi_mean", or constant integer
     p_data["psf"] = True  # if True: apply Fermi PSF to PS templates when generating PS maps
     p_data["Ebins"] = np.array([0.1,20,100])#np.array([0.3,0.69,1.4])#np.array([0.1, 0.2, 0.3, 0.5, 0.8, 1.5, 10])
@@ -258,8 +258,8 @@ def get_params(int_flag=0):
     # Neural network architecture (for both FF and SCD sub-networks)
     ###################################
     p_arch = DotDict()
-    p_arch['nsides'] = [128, 64, 32, 16, 8, 4, 2, 1]  # list containing nside hierarchy for a forward pass though the NN
-    p_arch['F'] = [32, 64, 128, 256, 256, 256, 256]  # graph-convolutional layers: number of feature maps for each layer
+    p_arch['nsides'] = [256, 128, 64, 32, 16, 8, 4, 2, 1]  # list containing nside hierarchy for a forward pass though the NN
+    p_arch['F'] = [32, 64, 128, 256, 256, 256, 256, 256]  # graph-convolutional layers: number of feature maps for each layer
     p_arch['M'] = [2048, 512]  # hidden fully-connected layers: output dimensionalities
     # Note: This should NOT include final fully-connected layer whose output dimension will automatically be computed
     p_arch['K'] = [5] * len(p_arch['F'])  # polynomial orders for the graph convolutions
