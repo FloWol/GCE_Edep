@@ -6,6 +6,7 @@ import numpy as np
 import healpy as hp
 import colorcet as cc
 import itertools
+import pickle
 
 
 
@@ -608,7 +609,7 @@ def plot_maps(maps, params, out_file="maps.pdf", cmap="rocket_r", plot_inds=None
         fig.savefig(os.path.join(save_folder, out_file), bbox_inches="tight")
 
 
-def plot_flux_per_Ebin(params, y_true, y_pred, image):
+def plot_ff_per_Ebin(params, y_true, y_pred, image):
     #TODO Ebins anzeigen lassen
     assert y_true.shape == y_pred['ff_mean'].shape
     Ebins = params.data["N_bins"]
@@ -628,6 +629,65 @@ def plot_flux_per_Ebin(params, y_true, y_pred, image):
                     label=str(params.mod["model_names"][temp])+" pred", color=colors[temp], alpha=0.5) #plot pred vals per temp
 
         plt.scatter(np.arange(0,Ebins,1), y_true[image,temp, :], marker=next(marker),
+                    label=str(params.mod["model_names"][temp])+" true", color=colors[temp], alpha=0.5) #plot true vals
+    # for temp in range(0, y_true.shape[1]):
+    #     plt.hist(y_pred['ff_mean'][0, temp, :], Ebins,
+    #                 label=str(params.mod["model_names"][temp])+" pred", alpha=0.5)
+    #     # plt.hist(y_true['ff_mean'][0, temp, :], Ebins, marker=next(marker),
+    #     #              label=str(params.mod["model_names"][temp])+" pred", color=colors[temp], alpha=0.5)
+
+
+    #TODO plt axis title etc
+    #plt.title('Flux means per Ebin per Template predicted and true')
+    plt.xticks(np.arange(0,Ebins,1))
+    plt.xlabel("Energy bins")
+    plt.ylabel("Flux means")
+    plt.legend(bbox_to_anchor=(0,1.02,1,0.2), loc="lower left",
+                mode="expand",borderpad=2, ncol=y_true.shape[1],fontsize="small")
+
+    plt.show()
+
+
+
+    return
+
+def plot_flux_per_Ebin(params, maps,y_true, y_pred, image):
+    #TODO Ebins anzeigen lassen
+    assert y_true.shape == y_pred['ff_mean'].shape
+    Ebins = params.data["N_bins"]
+
+    settings_dict = pickle.load(open("/home/flo/GCE_NN/data/Combined_maps/Example_comb_256/settings_combined.pickle", "rb"))
+
+
+    models = params.mod["models"]
+    n_models = len(models)
+    model_names = params.mod["model_names"]
+    colors = params.plot["colors"]
+
+    #for key in [*train_files_dict] sollten nur keys sein also model names
+
+    exp = np.unique(np.asarray([settings_dict[key]["exp"] for key in settings_dict.keys()]), axis=0).squeeze()
+    indices_roi_all = np.asarray([settings_dict[temp]["indices_roi"] for temp in settings_dict.keys()])
+    indices_roi_unique = np.unique(indices_roi_all, axis=0)
+    exp_indices_roi = exp[indices_roi_unique.flatten()]
+    exposure = np.expand_dims(exp_indices_roi, 1)
+
+    flux_per_count_bin = maps[image]/exposure # take one map and correct exposure(shape: pix, bins)
+    flux_per_bin = maps[image].sum(0)  #summiert über die pixel und gibt counts pro bin shape: (4,)
+
+    marker = itertools.cycle((',', '+', '.', 'o', '*'))
+
+    plt.figure(figsize=(16, 12), dpi=120)
+    #loop over templates
+    for temp in range(0, n_models):
+        #marker = next(marker)
+
+
+
+        plt.scatter(np.arange(0,Ebins,1), y_pred['ff_mean'][image,temp, :]*flux_per_bin, marker=next(marker),
+                    label=str(params.mod["model_names"][temp])+" pred", color=colors[temp], alpha=0.5) #plot pred vals per temp
+
+        plt.scatter(np.arange(0,Ebins,1), y_true[image,temp, :]*flux_per_bin, marker=next(marker),
                     label=str(params.mod["model_names"][temp])+" true", color=colors[temp], alpha=0.5) #plot true vals
     # for temp in range(0, y_true.shape[1]):
     #     plt.hist(y_pred['ff_mean'][0, temp, :], Ebins,

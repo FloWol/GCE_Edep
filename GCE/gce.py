@@ -22,7 +22,7 @@ from .parameter_utils import get_subdict, load_params_from_pickle
 from .nn.pipeline import build_pipeline
 from .nn.Models.deepsphere_cnn import DeepsphereCNN
 from .nn import losses
-from .plots import plot_flux_fractions_Ebin, plot_histograms, plot_maps, plot_flux_fractions_total, plot_flux_per_Ebin
+from .plots import plot_flux_fractions_Ebin, plot_histograms, plot_maps, plot_flux_fractions_total, plot_ff_per_Ebin, plot_flux_per_Ebin
 from .ps_mc import make_map
 from scipy import stats
 from .pdf_energy_sampler import PDFSampler as PDF_Energy_Sampler
@@ -1048,7 +1048,7 @@ class Analysis:
         return plot_flux_fractions_total(self.p, true_ffs, preds, **kwargs)
         return plot_flux_fractions_total(self.p, true_ffs, preds, **kwargs)
 
-    def plot_flux_per_Ebin(self, true_ffs, preds,image, **kwargs):
+    def plot_ff_per_Ebin(self, true_ffs, preds,image, **kwargs):
         """
         Plot true vs. estimated flux fractions.
         :param true_ffs: true flux fractions
@@ -1059,7 +1059,24 @@ class Analysis:
         required_keys = ("mod", "nn", "plot")
         self._check_keys_exist(required_keys)
         assert self.p.nn.ff["return_ff"], "self.p.nn.ff['return_ff'] is set to False!"
-        return plot_flux_per_Ebin(self.p, true_ffs, preds,image, **kwargs)
+        return plot_ff_per_Ebin(self.p, true_ffs, preds,image, **kwargs)
+
+
+    def plot_flux_per_Ebin(self, maps,y_true, y_pred, image):
+        """
+        Plot true vs. estimated flux fractions.
+        :param true_ffs: true flux fractions
+        :param preds: neural network prediction (output dictionary)
+        :param kwargs: will be passed on to plot_flux_fractions() in plots.py
+        :return: figure, axes
+        """
+        required_keys = ("mod", "nn", "plot")
+        self._check_keys_exist(required_keys)
+        assert self.p.nn.ff["return_ff"], "self.p.nn.ff['return_ff'] is set to False!"
+        return plot_flux_per_Ebin(self.p, maps,y_true, y_pred, image)
+
+
+
 
     def plot_histograms(self, true_hists, preds, **kwargs):
         """

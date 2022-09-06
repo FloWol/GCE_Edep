@@ -434,7 +434,7 @@ def combine_template_maps(save_filenames, params, job_id=None, train_range=None,
                             hist_input = data_dict[hist_template]["data"]
                         counts_per_pix_hist = np.asarray([np.histogram(hist_input[i, :, :], weights=hist_input[i, :, :], #pfusch hier von 1 auf : im letzten eintrag
                                                                        bins=bins_counts_per_pix)[0]
-                                                          for i in range(n_maps_per_file)]) #TODO here is some juciy stuff #counts per pix oder daraus ein counts per pix per energy machen
+                                                          for i in range(n_maps_per_file)]) #TODO HIST here is some juciy stuff #counts per pix oder daraus ein counts per pix per energy machen
                         counts_per_pix_hist_sum = counts_per_pix_hist.sum(1)
                         data_out["hists"][hist_template]["counts_per_pix"] \
                             = counts_per_pix_hist / np.expand_dims(get_denominator(counts_per_pix_hist_sum), -1)

@@ -34,6 +34,8 @@ pred = gce.predict(test_data, tau=tau, multiple_taus=True)  # get the NN predict
 
 gce.plot_flux_fractions_Ebin(test_ffs, pred)
 gce.plot_flux_fractions_total(test_ffs, pred)
-for image in [1,2,3,4,5,6]:
-    gce.plot_flux_per_Ebin(test_ffs, pred, image)
+for image in [1]:
+    gce.plot_flux_per_Ebin(test_data, test_ffs, pred, image)
+    gce.plot_ff_per_Ebin(test_ffs, pred, image)
+
 
