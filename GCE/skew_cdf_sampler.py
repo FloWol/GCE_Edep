@@ -10,7 +10,13 @@ class CDFSampler:
         :param cdf: cdf function that can be used instead, so there is no need to sample a new cdf
         """
         self.cdf = cdf
+        # print("START")
+        # print("cdf")
+        # print(self.cdf)
+        # print(self.cdf-1)
         self.xvals = xvals
+        # print("xvals")
+        # print(self.xvals)
         self.sortxvals = np.argsort(self.cdf) #probably obsolete
 
 
@@ -29,8 +35,18 @@ class CDFSampler:
         # Random draw from a uniform, up to max of the cdf, which need
         # not be 1 as the pdf does not have to be normalised
         #print("Psamples shape: " + str(samples.shape) + "samples: " + str(samples[:10]))
+
         unidraw = np.random.uniform(low=self.cdf[0], high=self.cdf[-1], size=samples) #Pfusch low ist nicht mehr 0.0 (default) sondern lowest cdf nr
         cdfdraw = np.searchsorted(self.cdf, unidraw) #gibt indizes von cdf aus wo unidraw werte sind
+        # print("unidraw")
+        # print(unidraw)
+        # print(unidraw-1)
+        # print("CDFDRAW")
+        # print(cdfdraw)
+        # print(cdfdraw-1)
+        # print("sortxvals")
+        # print(self.sortxvals)
+        # print(self.sortxvals[cdfdraw])
         cdfdraw = self.sortxvals[cdfdraw] #sucht index xwerte von den gezogenen cdf values
         return self.xvals[cdfdraw]  #xwerte für die dazugehörigen cdf werte #mayb obsolete
 

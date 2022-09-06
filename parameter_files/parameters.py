@@ -115,7 +115,7 @@ def get_params(int_flag=0):
     p_data["nside"] = int(256)  # nside resolution parameter of the data
     p_data["exposure"] = "Fermi"  # one of "Fermi", "Fermi_mean", or constant integer
     p_data["psf"] = True  # if True: apply Fermi PSF to PS templates when generating PS maps
-    p_data["Ebins"] = np.array([0.1,20,100])#np.array([0.3,0.69,1.4])#np.array([0.1, 0.2, 0.3, 0.5, 0.8, 1.5, 10])
+    p_data["Ebins"] = np.array([2,5,10,15,20])
     # (see the function fermi_psf() in data_utils.py)
     p["data"] = p_data
 
@@ -123,15 +123,15 @@ def get_params(int_flag=0):
     # Modeling settings
     ###################################
     p_mod = DotDict()
-    # p_mod["models_P"] = ["dif_O_pibs", "dif_O_ic", "iso", "bub"]  # list of Poissonian templates
-    p_mod["models_P"] = ["bub"]#["dif_O_pibs", "bub"]  # list of Poissonian templates
-    # p_mod["models_PS"] = ["gce_12_PS", "thin_disk_PS"]  # list of PS templates
-    p_mod["models_PS"] = ["gce_12_PS", "iso_PS"]  # list of PS templates
+    p_mod["models_P"] = ["dif_O_pibs", "dif_O_ic", "iso", "bub"]  # list of Poissonian templates
+    #p_mod["models_P"] = ["bub"]#["dif_O_pibs", "bub"]  # list of Poissonian templates
+    p_mod["models_PS"] = ["gce_12_PS", "thin_disk_PS"]  # list of PS templates
+    #p_mod["models_PS"] = ["gce_12_PS", "iso_PS"]  # list of PS templates
     # Note: point-source models use the same names as the Poissonian models, but with a trailing "_PS"!
-    # p_mod["model_names_P"] = [r"diffuse $\pi^0$ + BS", "diffuse IC", "isotropic", r"$\it{Fermi}$ bubbles"]  # names: P
-    p_mod["model_names_P"] = [r"$\it{Fermi}$ bubbles"]#[r"diffuse $\pi^0$ + BS", r"$\it{Fermi}$ bubbles"]
+    p_mod["model_names_P"] = [r"diffuse $\pi^0$ + BS", "diffuse IC", "isotropic", r"$\it{Fermi}$ bubbles"]  # names: P
+    #p_mod["model_names_P"] = [r"$\it{Fermi}$ bubbles"]#[r"diffuse $\pi^0$ + BS", r"$\it{Fermi}$ bubbles"]
     #p_mod["model_names_P"] = []#[r"$\it{Fermi}$ bubbles"]  # names: P
-    p_mod["model_names_PS"] = ["GCE", "isotropic PS"]  # names: PS
+    p_mod["model_names_PS"] = ["GCE", "thin disk"]  # names: PS
     p["mod"] = p_mod
 
     # Template map settings (for training and testing maps)
@@ -143,7 +143,7 @@ def get_params(int_flag=0):
     p_tt["n_chunk"] = int(1000)  # number of chunks to compute per job
     p_tt["n_sim_per_chunk"] = int(100)  # number of simulations per chunk and per model (one output file per chunk)
     # Note: the total number of maps for each template will be "n_chunk" * "n_sim_per_chunk" (* # jobs)
-    p_tt["add_two_temps_PS"] = ["iso_PS"]  # list of PS templates for which TWICE the number of maps will be generated.
+    p_tt["add_two_temps_PS"] = []#["iso_PS"]  # list of PS templates for which TWICE the number of maps will be generated.
     # Later, these maps can be added pairwise, modeling two distinct populations.
 
     # Prior settings
@@ -181,11 +181,11 @@ def get_params(int_flag=0):
     Edep_dict = DotDict()
 
     # Poissonian
-    Edep_dict["dif_O_pibs"] = {"mean_exp": [-0.6, 0], "var_exp": 10, "skew_std": 3}
-    Edep_dict["dif_O_ic"] = {"mean_exp": [-1.1, 0], "var_exp": 40, "skew_std": 3}
-    Edep_dict["iso"] = {"mean_exp": [0.47, -1], "var_exp": 10, "skew_std": 3}
-    Edep_dict["bub"] = {"mean_exp": [0.6, 1.04], "var_exp": 3, "skew_std": 0.0}
-    Edep_dict["gce_12"] = {"mean_exp": [0, 0.69], "var_exp": 10, "skew_std": 3}
+    Edep_dict["dif_O_pibs"] = {"mean_exp": [np.log10(2),np.log10(20)], "var_exp": 4,"skew_std": 3}
+    Edep_dict["dif_O_ic"] = {"mean_exp": [np.log10(2),np.log10(20)], "var_exp": 4,"skew_std": 3}
+    Edep_dict["iso"] = {"mean_exp": [np.log10(2),np.log10(20)], "var_exp": 4,"skew_std": 3}
+    Edep_dict["bub"] = {"mean_exp": [np.log10(2),np.log10(20)], "var_exp": 4,"skew_std": 3}
+    Edep_dict["gce_12"] = {"mean_exp": [np.log10(2),np.log10(20)], "var_exp": 4,"skew_std": 3}
 
 
 
@@ -194,9 +194,9 @@ def get_params(int_flag=0):
     #     return np.ones_like(E)
 
     # Point sources
-    Edep_dict["gce_12_PS"] = {"mean_exp": [0, 0.69], "var_exp": 10, "skew_std": 3}
-    Edep_dict["thin_disk_PS"] = {"mean_exp": [-1, 0.477], "var_exp": 10, "skew_std": 3.5}
-    Edep_dict["iso_PS"] = {"mean_exp": [0, 0.69], "var_exp": 10, "skew_std": 3} #whats iso PS
+    Edep_dict["gce_12_PS"] = {"mean_exp": [np.log10(2),np.log10(20)], "var_exp": 4,"skew_std": 3}
+    Edep_dict["thin_disk_PS"] = {"mean_exp": [np.log10(2),np.log10(20)], "var_exp": 4,"skew_std": 3}
+    Edep_dict["iso_PS"] = {"mean_exp": [np.log10(2),np.log10(20)], "var_exp": 4,"skew_std": 3} #whats iso PS
 
 
 
@@ -236,7 +236,7 @@ def get_params(int_flag=0):
     # the remaining files will be used as training data
 
     # SCD histogram settings
-    p_comb["hist_templates"] = ["gce_12_PS", "iso_PS"]  # list of templates for which histograms shall be saved
+    p_comb["hist_templates"] = ["gce_12_PS", "thin_disk_PS"]  # list of templates for which histograms shall be saved
     p_comb["do_dNdF"] = True  # save histograms of dNdFs?
     p_comb["do_counts_per_PS"] = False  # save histograms of counts per PS?
     p_comb["do_counts_per_pix"] = False   # save histograms of counts per pixel (before applying the PSF)?
@@ -287,7 +287,7 @@ def get_params(int_flag=0):
     ###################################
     p_hist = DotDict()
     p_hist["return_hist"] = False  # main switch for SCD histogram estimation
-    p_hist["hist_templates"] = ["gce_12_PS", "iso_PS"]  # list of PS templates with histogram
+    p_hist["hist_templates"] = ["gce_12_PS", "thin_disk_PS"]  # list of PS templates with histogram
     # Note: this must be subset of the templates for which the histograms were saved, given by p_comb["hist_templates")
     p_hist["last_act"] = "normalized_softplus"  # last activation function yielding the SCD histogram,
     # "softmax" or "normalized_softplus"
@@ -321,7 +321,7 @@ def get_params(int_flag=0):
     # For example, setting p_train['batch_size'] = 256 yields n_batch = 64 on each GPU when using 4 GPUs.
     p_train['num_steps'] = 3000#2500    # number of steps to do (total number of maps shown is num_steps * batch_size)
     p_train['batch_size'] = 32  # number of samples per training batch. Should be a power of 2 for greater speed
-    p_train['batch_size_val'] = 16  # number of samples per validation batch
+    p_train['batch_size_val'] = 32  # number of samples per validation batch
     p_train['prefetch_batch_buffer'] = 5  # number of batches to prefetch for training data
     p_train['prefetch_batch_buffer_val'] = 5  # number of batches to prefetch for validation data
     p_train['eval_frequency'] = 50  # frequency of model evaluations during training (influences training time!)
@@ -342,7 +342,7 @@ def get_params(int_flag=0):
     # Plot settings
     ###################################
     p_plot = DotDict()
-    p_plot["colors_P"] = ['#37c837', 'r']  # plot colors for the Poissonian models
+    p_plot["colors_P"] = ['#37c837', 'r', 'y', 'b']  # plot colors for the Poissonian models
     p_plot["colors_PS"] = ['deepskyblue', 'k']  # plot colors for the point-source models
     p["plot"] = p_plot
 

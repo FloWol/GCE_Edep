@@ -13,6 +13,7 @@ from .utils import multipage, auto_garbage_collect
 import ray
 import time
 import warnings
+import sys
 from .pdf_sampler import PDFSampler
 from .skew_cdf_sampler import CDFSampler
 from .pdf_energy_sampler import PDFSampler as PDF_Energy_Sampler
@@ -159,7 +160,7 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
                 # print(Eind.size)
 
 
-                np.add.at(map_arr[current_map], (pix_counts, Eind - 1), int(1)) #FIXME jetzt werden Ebins auch außerhalb gesampelt
+                np.add.at(map_arr[current_map], (pix_counts, Eind - 1), int(1))
                 current_map += 1
 
                 # info
@@ -212,7 +213,9 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
     # Initialise Ray
 
     if t_ps:
+        os.environ['PYTHONPATH'] = ("/home/flo/GCE_NN")
         ray.init(**ray_settings)
+
         if "num_cpus" in ray_settings.keys():
             print("Ray: running on", ray_settings["num_cpus"], "CPUs.")
 

@@ -1048,7 +1048,7 @@ class Analysis:
         return plot_flux_fractions_total(self.p, true_ffs, preds, **kwargs)
         return plot_flux_fractions_total(self.p, true_ffs, preds, **kwargs)
 
-    def plot_flux_per_Ebin(self, true_ffs, preds, **kwargs):
+    def plot_flux_per_Ebin(self, true_ffs, preds,image, **kwargs):
         """
         Plot true vs. estimated flux fractions.
         :param true_ffs: true flux fractions
@@ -1059,7 +1059,7 @@ class Analysis:
         required_keys = ("mod", "nn", "plot")
         self._check_keys_exist(required_keys)
         assert self.p.nn.ff["return_ff"], "self.p.nn.ff['return_ff'] is set to False!"
-        return plot_flux_per_Ebin(self.p, true_ffs, preds, **kwargs)
+        return plot_flux_per_Ebin(self.p, true_ffs, preds,image, **kwargs)
 
     def plot_histograms(self, true_hists, preds, **kwargs):
         """

@@ -608,7 +608,7 @@ def plot_maps(maps, params, out_file="maps.pdf", cmap="rocket_r", plot_inds=None
         fig.savefig(os.path.join(save_folder, out_file), bbox_inches="tight")
 
 
-def plot_flux_per_Ebin(params, y_true, y_pred):
+def plot_flux_per_Ebin(params, y_true, y_pred, image):
     #TODO Ebins anzeigen lassen
     assert y_true.shape == y_pred['ff_mean'].shape
     Ebins = params.data["N_bins"]
@@ -619,13 +619,15 @@ def plot_flux_per_Ebin(params, y_true, y_pred):
     colors = params.plot["colors"]
 
     marker = itertools.cycle((',', '+', '.', 'o', '*'))
+
+    plt.figure(figsize=(16, 12), dpi=120)
     #loop over templates
-    for temp in range(0, y_true.shape[1]):
+    for temp in range(0, n_models):
         #marker = next(marker)
-        plt.scatter(np.arange(0,Ebins,1), y_pred['ff_mean'][0, temp, :], marker=next(marker),
+        plt.scatter(np.arange(0,Ebins,1), y_pred['ff_mean'][image,temp, :], marker=next(marker),
                     label=str(params.mod["model_names"][temp])+" pred", color=colors[temp], alpha=0.5) #plot pred vals per temp
 
-        plt.scatter(np.arange(0,Ebins,1), y_true[0, temp, :], marker=next(marker),
+        plt.scatter(np.arange(0,Ebins,1), y_true[image,temp, :], marker=next(marker),
                     label=str(params.mod["model_names"][temp])+" true", color=colors[temp], alpha=0.5) #plot true vals
     # for temp in range(0, y_true.shape[1]):
     #     plt.hist(y_pred['ff_mean'][0, temp, :], Ebins,
