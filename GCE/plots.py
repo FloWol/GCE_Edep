@@ -7,6 +7,7 @@ import healpy as hp
 import colorcet as cc
 import itertools
 import pickle
+from tensorflow import gather
 
 
 
@@ -641,7 +642,7 @@ def plot_ff_per_Ebin(params, y_true, y_pred, image):
     #plt.title('Flux means per Ebin per Template predicted and true')
     plt.xticks(np.arange(0,Ebins,1))
     plt.xlabel("Energy bins")
-    plt.ylabel("Flux means")
+    plt.ylabel("Flux fraction")
     plt.legend(bbox_to_anchor=(0,1.02,1,0.2), loc="lower left",
                 mode="expand",borderpad=2, ncol=y_true.shape[1],fontsize="small")
 
@@ -672,8 +673,8 @@ def plot_flux_per_Ebin(params, maps,y_true, y_pred, image):
     exp_indices_roi = exp[indices_roi_unique.flatten()]
     exposure = np.expand_dims(exp_indices_roi, 1)
 
-    flux_per_count_bin = maps[image]/exposure # take one map and correct exposure(shape: pix, bins)
-    flux_per_bin = maps[image].sum(0)  #summiert über die pixel und gibt counts pro bin shape: (4,)
+    flux_per_pix_bin = maps[image]/exposure # take one map and correct exposure(shape: pix, bins)
+    flux_per_bin = flux_per_pix_bin.sum(0)  #summiert über die pixel und gibt counts pro bin shape: (4,)
 
     marker = itertools.cycle((',', '+', '.', 'o', '*'))
 
@@ -700,7 +701,7 @@ def plot_flux_per_Ebin(params, maps,y_true, y_pred, image):
     #plt.title('Flux means per Ebin per Template predicted and true')
     plt.xticks(np.arange(0,Ebins,1))
     plt.xlabel("Energy bins")
-    plt.ylabel("Flux means")
+    plt.ylabel("Flux")
     plt.legend(bbox_to_anchor=(0,1.02,1,0.2), loc="lower left",
                 mode="expand",borderpad=2, ncol=y_true.shape[1],fontsize="small")
 
@@ -709,3 +710,56 @@ def plot_flux_per_Ebin(params, maps,y_true, y_pred, image):
 
 
     return
+
+
+def plot_outliers(params,y_true, y_pred, threshold=0.04):
+    #TODO Ebins anzeigen lassen
+    assert y_true.shape == y_pred['ff_mean'].shape
+    Ebins = params.data["N_bins"]
+
+
+
+
+
+    models = params.mod["models"]
+    n_models = len(models)
+    model_names = params.mod["model_names"]
+    colors = params.plot["colors"]
+
+
+    if not isinstance(y_pred, dict):
+        raise TypeError("Predictions must be a dictionary!")
+
+    if "ff_mean" not in y_pred.keys():
+        raise KeyError("Key 'ff_mean' not found!")
+    else:
+        pred_ffs = y_pred["ff_mean"].numpy()
+
+    if "ff_logvar" in y_pred.keys():
+        pred_stds = np.exp(0.5 * y_pred["ff_logvar"].numpy())
+    elif "ff_covar" in y_pred.keys():
+        pred_stds = np.sqrt(np.asarray([np.diag(c) for c in y_pred["ff_covar"].numpy()]))
+    else:
+        pred_stds = None
+
+    #calculate error and get indices of poorly matched maps
+    errors = np.abs(y_pred['ff_mean']-y_true)
+    abv_thresh = np.argwhere(errors > threshold)
+
+    outlier_pred = gather(y_pred['ff_mean'],abv_thresh[:,0])
+    outlier_errors = gather(y_pred['ff_logvar'],abv_thresh[:,0])
+    outlier_pred_dict = {'ff_mean': outlier_pred, 'ff_logvar': outlier_errors} #dict is needed to reuse above functions
+
+    outlier_true = y_true[abv_thresh[:,0]]
+
+    plt.title("Outliers per energy bin, error threshold: " + str(threshold))
+    plot_flux_fractions_Ebin(params, outlier_true, outlier_pred_dict)
+    plt.title("Outliers, error threshold: " + str(threshold))
+    plot_flux_fractions_total(params, outlier_true, outlier_pred_dict)
+
+
+
+
+
+
+    return abv_thresh
