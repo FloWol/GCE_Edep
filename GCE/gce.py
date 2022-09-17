@@ -22,7 +22,9 @@ from .parameter_utils import get_subdict, load_params_from_pickle
 from .nn.pipeline import build_pipeline
 from .nn.Models.deepsphere_cnn import DeepsphereCNN
 from .nn import losses
-from .plots import plot_flux_fractions_Ebin, plot_histograms, plot_maps, plot_flux_fractions_total, plot_ff_per_Ebin, plot_flux_per_Ebin, plot_outliers
+from .plots import plot_flux_fractions_Ebin, plot_histograms, plot_maps, plot_flux_fractions_total, plot_ff_per_Ebin, \
+    plot_flux_per_Ebin, plot_outliers, plot_templates_scaled_ff
+
 from .ps_mc import make_map
 from scipy import stats
 from .pdf_energy_sampler import PDFSampler as PDF_Energy_Sampler
@@ -534,7 +536,7 @@ class Analysis:
         loc_ = np.random.uniform(*prior_dict[temp]["mean_exp"], size=n_sim_per_chunk)
         scale_ = prior_dict[temp]["var_exp"] * np.random.chisquare(1, size=n_sim_per_chunk)
         skew_ = np.random.normal(loc=0, scale=prior_dict[temp]["skew_std"], size=n_sim_per_chunk)
-        flux_arr_ = 10 ** stats.skewnorm.rvs(skew_, loc=loc_, scale=np.sqrt(scale_), size=50)
+        # flux_arr_ = 10 ** stats.skewnorm.rvs(skew_, loc=loc_, scale=np.sqrt(scale_), size=50)
 
         #exposure and energy dependence
         exp = self.template_dict["exp"]
@@ -1034,6 +1036,21 @@ class Analysis:
         assert self.p.nn.ff["return_ff"], "self.p.nn.ff['return_ff'] is set to False!"
         return plot_flux_fractions_Ebin(self.p, true_ffs, preds, **kwargs)
 
+
+
+    def plot_templates_scaled_ff(self, true_ffs, preds, **kwargs):
+        """
+        Plot true vs. estimated flux fractions.
+        :param true_ffs: true flux fractions
+        :param preds: neural network prediction (output dictionary)
+        :param kwargs: will be passed on to plot_flux_fractions() in plots.py
+        :return: figure, axes
+        """
+        required_keys = ("mod", "nn", "plot")
+        self._check_keys_exist(required_keys)
+        assert self.p.nn.ff["return_ff"], "self.p.nn.ff['return_ff'] is set to False!"
+        return plot_templates_scaled_ff(self.p, true_ffs, preds, **kwargs)
+
     def plot_flux_fractions_total(self, true_ffs, preds, **kwargs):
         """
         Plot true vs. estimated flux fractions.
@@ -1046,6 +1063,7 @@ class Analysis:
         self._check_keys_exist(required_keys)
         assert self.p.nn.ff["return_ff"], "self.p.nn.ff['return_ff'] is set to False!"
         return plot_flux_fractions_total(self.p, true_ffs, preds, **kwargs)
+
 
     def plot_outliers(self, true_ffs, preds, **kwargs):
         """
@@ -1075,7 +1093,7 @@ class Analysis:
         return plot_ff_per_Ebin(self.p, true_ffs, preds,image, **kwargs)
 
 
-    def plot_flux_per_Ebin(self, maps,y_true, y_pred, image):
+    def plot_flux_per_Ebin(self, maps,y_true, y_pred, image, **kwargs):
         """
         Plot true vs. estimated flux fractions.
         :param true_ffs: true flux fractions
@@ -1086,7 +1104,7 @@ class Analysis:
         required_keys = ("mod", "nn", "plot")
         self._check_keys_exist(required_keys)
         assert self.p.nn.ff["return_ff"], "self.p.nn.ff['return_ff'] is set to False!"
-        return plot_flux_per_Ebin(self.p, maps,y_true, y_pred, image)
+        return plot_flux_per_Ebin(self.p, maps,y_true, y_pred, image, **kwargs)
 
 
 

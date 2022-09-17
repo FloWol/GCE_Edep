@@ -214,7 +214,8 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
 
     if t_ps:
         os.environ['PYTHONPATH'] = ("/home/flo/GCE_NN")
-        ray.init(**ray_settings)
+        ray.init(local_mode=True) #for debugging
+        #ray.init(**ray_settings)
 
         if "num_cpus" in ray_settings.keys():
             print("Ray: running on", ray_settings["num_cpus"], "CPUs.")
