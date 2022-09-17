@@ -23,7 +23,8 @@ from .nn.pipeline import build_pipeline
 from .nn.Models.deepsphere_cnn import DeepsphereCNN
 from .nn import losses
 from .plots import plot_flux_fractions_Ebin, plot_histograms, plot_maps, plot_flux_fractions_total, plot_ff_per_Ebin, \
-    plot_flux_per_Ebin, plot_outliers, plot_templates_scaled_ff
+    plot_flux_per_Ebin, plot_outliers, plot_templates_scaled_ff, plot_ebin_ff, plot_ff_ebins_with_color_flux, \
+    plot_ff_total_with_color_flux
 
 from .ps_mc import make_map
 from scipy import stats
@@ -1051,6 +1052,20 @@ class Analysis:
         assert self.p.nn.ff["return_ff"], "self.p.nn.ff['return_ff'] is set to False!"
         return plot_templates_scaled_ff(self.p, true_ffs, preds, **kwargs)
 
+
+    def plot_ebin_ff(self, true_ffs, preds, **kwargs):
+        """
+        Plot true vs. estimated flux fractions.
+        :param true_ffs: true flux fractions
+        :param preds: neural network prediction (output dictionary)
+        :param kwargs: will be passed on to plot_flux_fractions() in plots.py
+        :return: figure, axes
+        """
+        required_keys = ("mod", "nn", "plot")
+        self._check_keys_exist(required_keys)
+        assert self.p.nn.ff["return_ff"], "self.p.nn.ff['return_ff'] is set to False!"
+        return plot_ebin_ff(self.p, true_ffs, preds, **kwargs)
+
     def plot_flux_fractions_total(self, true_ffs, preds, **kwargs):
         """
         Plot true vs. estimated flux fractions.
@@ -1093,6 +1108,19 @@ class Analysis:
         return plot_ff_per_Ebin(self.p, true_ffs, preds,image, **kwargs)
 
 
+    def plot_ff_ebins_with_color_flux(self, maps,y_true, y_pred,  **kwargs):
+        """
+        Plot true vs. estimated flux fractions.
+        :param true_ffs: true flux fractions
+        :param preds: neural network prediction (output dictionary)
+        :param kwargs: will be passed on to plot_flux_fractions() in plots.py
+        :return: figure, axes
+        """
+        required_keys = ("mod", "nn", "plot")
+        self._check_keys_exist(required_keys)
+        assert self.p.nn.ff["return_ff"], "self.p.nn.ff['return_ff'] is set to False!"
+        return plot_ff_ebins_with_color_flux(self.p, maps,y_true, y_pred,  **kwargs)
+
     def plot_flux_per_Ebin(self, maps,y_true, y_pred, image, **kwargs):
         """
         Plot true vs. estimated flux fractions.
@@ -1106,6 +1134,19 @@ class Analysis:
         assert self.p.nn.ff["return_ff"], "self.p.nn.ff['return_ff'] is set to False!"
         return plot_flux_per_Ebin(self.p, maps,y_true, y_pred, image, **kwargs)
 
+
+    def plot_ff_total_with_color_flux(self, maps,y_true, y_pred, **kwargs):
+        """
+        Plot true vs. estimated flux fractions.
+        :param true_ffs: true flux fractions
+        :param preds: neural network prediction (output dictionary)
+        :param kwargs: will be passed on to plot_flux_fractions() in plots.py
+        :return: figure, axes
+        """
+        required_keys = ("mod", "nn", "plot")
+        self._check_keys_exist(required_keys)
+        assert self.p.nn.ff["return_ff"], "self.p.nn.ff['return_ff'] is set to False!"
+        return plot_ff_total_with_color_flux(self.p, maps,y_true, y_pred, **kwargs)
 
 
 
