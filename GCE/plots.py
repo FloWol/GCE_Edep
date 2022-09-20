@@ -730,6 +730,7 @@ def plot_flux_per_Ebin(params, maps,y_true, y_pred, image, lineplot = True, titl
 
 
 
+
     marker = itertools.cycle((',', '^', '.', 'o', '*'))
 
     plt.figure(figsize=(16, 12), dpi=120)
@@ -1239,6 +1240,174 @@ def plot_ff_ebins_with_color_flux(params,maps, true_ffs, preds, nptfit_ffs=None,
             flux_per_pix_bin = maps[image] / exposure  # take one map and correct exposure(shape: pix, bins)
             flux_per_bin = flux_per_pix_bin.sum(0)  # summiert über die pixel und gibt counts pro bin shape: (4,)
             total_flux_per_map[image] = flux_per_bin.sum()
+            true_flux[image, temp, :] = true_ffs[image, temp, :] * flux_per_bin
+
+    mean_abs_error_temp_Ebin = np.mean(np.abs(pred_ffs - true_ffs), 0)  # sum over batches
+    max_abs_error_temp_Ebin = np.max(np.abs(pred_ffs - true_ffs), 0)
+    mean_abs_error = np.mean(mean_abs_error_temp_Ebin, 1)  # Sum over Ebins
+    max_abs_error = np.max(max_abs_error_temp_Ebin, 1)
+
+    # q95_abs_error = np.quantile(np.abs(pred_ffs - true_ffs), .95, axis=0)
+    # q99_abs_error = np.quantile(np.abs(pred_ffs - true_ffs), .99, axis=0)
+
+
+    scat_fig, scat_ax = plt.subplots(n_row, n_col, figsize=figsize, squeeze=False, sharex="none", sharey="none")
+    for i_ax, ax in enumerate(scat_ax.flatten()):
+        # if i_ax >= len(models):
+        #     continue
+        ax.plot([0, 1], [0, 1], 'k-', lw=2, alpha=0.5)
+        if show_stripes:
+            ax.fill_between([0, 1], y1=[0.05, 1.05], y2=[-0.05, 0.95], color="0.7", alpha=0.5)
+            ax.fill_between([0, 1], y1=[0.1, 1.1], y2=[-0.1, 0.9], color="0.9", alpha=0.5)
+        ax.set_aspect("equal", "box")
+
+    # true_ffs = np.sum(true_ffs, axis=2)
+    # pred_ffs = np.sum(pred_ffs, axis=2)
+    # pred_stds = np.mean(pred_stds, axis=2)
+
+    for i_ax in range(n_row):  # , ax in enumerate(scat_ax.flatten(), start=0)
+        for ebin in range(0, n_col):
+            ax = scat_ax[i_ax][ebin]
+            if nptfit_ffs is not None:
+                ax.scatter(true_ffs[:, i_ax], nptfit_ffs[:, i_ax], s=ms_nptfit ** 2, c="1.0", marker=marker_nptf,
+                           lw=lw_nptfit, alpha=alpha, edgecolor="k", zorder=2, label="NPTFit")
+            if pred_stds is None:
+                ax.scatter(true_ffs[:, i_ax], pred_ffs[:, i_ax], s=ms ** 2, c=colors[i_ax], marker=marker,
+                           lw=lw, alpha=alpha, edgecolor="k", zorder=3, label="NN")
+            else:
+                ax.errorbar(x=true_ffs[:, i_ax, ebin], y=pred_ffs[:, i_ax, ebin], fmt=marker, ms=0,
+                                mfc=colors[i_ax],
+                                mec="k", lw=lw, alpha=alpha, zorder=3, label="NN",
+                                yerr=pred_stds[:, i_ax, ebin], elinewidth=2)
+
+
+                ax.scatter(x=true_ffs[:, i_ax, ebin], y=pred_ffs[:, i_ax, ebin],
+                     c=true_flux[:, i_ax, ebin], cmap="viridis",  alpha=alpha, zorder=3, label="NN") #vmin=true_flux.min(), vmax=true_flux.max()/10,
+                #plt.colorbar(scat_fig)
+
+            if i_ax == 0 and legend:
+                handles, labels = ax.get_legend_handles_labels()
+                ax.legend(handles[::-1], labels[::-1], frameon=True, loc='upper left', bbox_to_anchor=(0, 0.85),
+                          handletextpad=0.07, borderpad=0.25, fontsize=14)
+            if show_stats:
+                ax.text(0.62, 0.14 + delta_y, r"$\it{Mean}$", ha="center", va="center", size=12)
+                ax.text(0.62, 0.07 + delta_y, "{:.2f}%".format(mean_abs_error_temp_Ebin[i_ax, ebin] * 100), ha="center",
+                        va="center",
+                        color=colors[i_ax], size=12)
+            ax.set_xlim([-0.02, 1.02])
+            ax.set_ylim([-0.02, 1.02])
+            if ax.get_subplotspec().is_last_row() or (i_ax + n_col >= n_models):
+                ax.set_xticks(x_ticks)
+                ax.set_xticklabels(x_ticks)
+            else:
+                ax.set_xticks([])
+            if ax.get_subplotspec().is_first_col():
+                ax.set_yticks(y_ticks)
+                ax.set_yticklabels(y_ticks)
+            else:
+                ax.set_yticks([])
+            ax.text(0.03, 0.97, model_names[i_ax], va="top", ha="left")
+
+    scat_fig.text(0.5, 0.025, "True", ha="center", va="center")
+    scat_fig.text(0.02, 0.5, "Estimated", ha="center", va="center", rotation="vertical")
+    plt.tight_layout()
+    plt.subplots_adjust(hspace=0.0, wspace=0.0)
+    plt.show()
+
+    if out_file is not None:
+        save_folder = params.nn["figures_folder"]
+        scat_fig.savefig(os.path.join(save_folder, out_file), bbox_inches="tight")
+
+    return scat_fig, scat_ax
+
+
+def plot_flux_ebins_with_color_flux(params,maps, true_ffs, preds, nptfit_ffs=None, out_file="ff_error_plot.pdf", legend=None,
+                             show_stripes=True, show_stats=True, delta_y=0, marker="^", marker_nptf="o", ms=8,
+                             ms_nptfit=6,
+                             alpha=0.4, lw=0.8, lw_nptfit=1.6, ecolor=None, ticks=None, figsize=None):
+    """
+    Make an error plot of the NN flux fraction predictions.
+    :param params: parameter dictionary
+    :param true_ffs: true flux fraction labels
+    :param preds: NN estimates (output dictionary)
+    :param nptfit_ffs: if provided: also plot NPTFit flux fractions
+    :param out_file: name of the output file
+    :param legend: show legend? by default on if NN and NPTFit fluxes are given, otherwise off
+    :param show_stripes: show the stripes indicating 5% and 10% errors?
+    :param show_stats: show stats?
+    :param delta_y: shift vertical position of the stats
+    :param marker: marker for NN estimates
+    :param marker_nptf: marker for NPTFit estimates
+    :param ms: marker size for NN estimates
+    :param ms_nptfit: marker size for NPTFit estimates
+    :param alpha: alpha for the markers
+    :param lw: linewidth for the markers
+    :param lw_nptfit: linewidth for the NPTFit markers
+    :param ecolor: error bar color
+    :param ticks: ticks
+    :param figsize: figure size
+    :return figure, axes
+    """
+    models = params.mod["models"]
+    n_models = len(models)
+    model_names = params.mod["model_names"]
+    colors = params.plot["colors"]
+
+    if not isinstance(preds, dict):
+        raise TypeError("Predictions must be a dictionary!")
+
+    if "ff_mean" not in preds.keys():
+        raise KeyError("Key 'ff_mean' not found!")
+    elif isinstance(preds["ff_mean"], np.ndarray):
+        pred_ffs = preds["ff_mean"]
+    else:
+        pred_ffs = preds["ff_mean"].numpy()
+
+    if "ff_logvar" in preds.keys():
+        if isinstance(preds["ff_logvar"], np.ndarray):
+            pred_stds = np.exp(0.5 * preds["ff_logvar"])
+        else:
+            pred_stds = np.exp(0.5 * preds["ff_logvar"].numpy())
+    elif "ff_covar" in preds.keys():
+        pred_stds = np.sqrt(np.asarray([np.diag(c) for c in preds["ff_covar"].numpy()]))
+    else:
+        pred_stds = None
+
+    if legend is None:
+        legend = True if nptfit_ffs is not None else False
+
+    # n_col = max(int(np.ceil(np.sqrt(n_models))), 1)
+    # n_row = int(np.ceil(n_models / n_col))
+
+    n_col = params.data["N_bins"]
+    n_row = n_models
+
+    if figsize is None:
+        figsize = (n_col * 3.5, n_row * 3.25)
+
+
+
+
+
+    # calculate exposure
+    settings_dict = pickle.load(
+        open("/home/flo/GCE_NN/data/Combined_maps/Example_comb_256/settings_combined.pickle", "rb"))
+    exp = np.unique(np.asarray([settings_dict[key]["exp"] for key in settings_dict.keys()]), axis=0).squeeze()
+    indices_roi_all = np.asarray([settings_dict[temp]["indices_roi"] for temp in settings_dict.keys()])
+    indices_roi_unique = np.unique(indices_roi_all, axis=0)
+    exp_indices_roi = exp[indices_roi_unique.flatten()]
+    exposure = np.expand_dims(exp_indices_roi, 1)
+
+    total_flux_per_map = np.zeros(shape=(maps.shape[0]))
+
+    # convert ff maps to flux maps
+    true_flux = np.zeros(shape=true_ffs.shape)
+    for image in range(0, maps.shape[0]):
+        flux_per_pix_bin = maps[image] / exposure  # take one map and correct exposure(shape: pix, bins)
+        flux_per_bin = flux_per_pix_bin.sum(0)  # summiert über die pixel und gibt counts pro bin shape: (4,)
+        total_flux_per_map[image] = flux_per_bin.sum()
+        for temp in range(0, n_models):
+
             true_flux[image, temp, :] = true_ffs[image, temp, :] * flux_per_bin
 
     mean_abs_error_temp_Ebin = np.mean(np.abs(pred_ffs - true_ffs), 0)  # sum over batches
