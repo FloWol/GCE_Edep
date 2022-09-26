@@ -1694,7 +1694,18 @@ def plot_mean_spectra(params,maps):
     plt.title("Counts per energybins")
     plt.show()
 
+def plot_spectra(params, maps):
+    Ebins = params.data["Ebins"]
+    models = params.mod["models"]
+    n_models = len(params.mod["models"])-1
 
+    plt.xticks(range(0, len(Ebins) - 1))
+    for model in range(0, n_models):
+        for sky_map in range(0,len(maps)-1):
+            plt.scatter(range(0,len(Ebins)-1), maps[sky_map, model, :], marker='^')
+
+        plt.title(str(models[model]))
+        plt.show()
 
 def plot_mean_spectra_template(params, maps):
     Ebins = params.data["Ebins"]

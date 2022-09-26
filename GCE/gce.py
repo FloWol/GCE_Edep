@@ -24,7 +24,8 @@ from .nn.Models.deepsphere_cnn import DeepsphereCNN
 from .nn import losses
 from .plots import plot_flux_fractions_Ebin, plot_histograms, plot_maps, plot_flux_fractions_total, plot_ff_per_Ebin, \
     plot_flux_per_Ebin, plot_outliers, plot_templates_scaled_ff, plot_ebin_ff, plot_ff_ebins_with_color_flux, \
-    plot_ff_total_with_color_flux, plot_flux_ebins_with_color_flux, plot_mean_spectra, plot_mean_spectra_template
+    plot_ff_total_with_color_flux, plot_flux_ebins_with_color_flux, plot_mean_spectra, plot_mean_spectra_template, \
+    plot_spectra
 
 from .ps_mc import make_map
 from scipy import stats
@@ -1126,6 +1127,13 @@ class Analysis:
         self._check_keys_exist(required_keys)
         assert self.p.nn.ff["return_ff"], "self.p.nn.ff['return_ff'] is set to False!"
         return plot_mean_spectra(self.p, maps)
+
+    def plot_spectra(self, maps):
+        required_keys = ("mod", "nn", "plot")
+        self._check_keys_exist(required_keys)
+        assert self.p.nn.ff["return_ff"], "self.p.nn.ff['return_ff'] is set to False!"
+        return plot_spectra(self.p, maps)
+
 
     def plot_mean_spectra_template(self, maps):
         required_keys = ("mod", "nn", "plot")

@@ -17,7 +17,7 @@ class CDFSampler:
         self.xvals = xvals
         # print("xvals")
         # print(self.xvals)
-        self.sortxvals = np.argsort(self.cdf) #probably obsolete
+        #self.sortxvals = np.argsort(self.cdf) #probably obsolete
 
 
 
@@ -47,7 +47,7 @@ class CDFSampler:
         # print("sortxvals")
         # print(self.sortxvals)
         # print(self.sortxvals[cdfdraw])
-        cdfdraw = self.sortxvals[cdfdraw] #sucht index xwerte von den gezogenen cdf values
+        #cdfdraw = self.sortxvals[cdfdraw] #sucht index xwerte von den gezogenen cdf values
         return self.xvals[cdfdraw]  #xwerte für die dazugehörigen cdf werte #mayb obsolete
 
 

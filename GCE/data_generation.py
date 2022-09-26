@@ -148,7 +148,7 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
 
             # poissonian energy dependence part 2
             current_map = 0
-            x = Ebins #np.linspace(Ebins[0], Ebins[-1],len(Ebins))  # BOTTLENECK Skewnorm.cdf benötigt sehr lange wenn size > 1000 #evtl im pdfsampler interpolieren
+            x = Ebins
             for i in sim_maps:  # 7749
 
                 pix_counts = np.repeat(range(len(i)), i)
@@ -156,7 +156,7 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
                 Energy_Sampler = CDFSampler(xvals=x,cdf=cdf)
                 E_draw = Energy_Sampler(pix_counts.size) #PFUSCH auf logarithm aufpassen
                 # E = pdf_E_samp(pix_counts.size)
-                Eind = np.digitize(E_draw, Ebins, right=True) #nur ein QUICKFIX
+                Eind = np.digitize(E_draw, Ebins, right=True)
                 # print(Eind.size)
 
 
@@ -167,7 +167,6 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
             # a shape: (50,) chunk size
             # sim_maps shape: (50, 7749) chunk size pix size
 
-            # print(sim_maps.shape)
 
             # Save settings
             if chunk == 0 and int(job_id) == 0:
@@ -214,8 +213,8 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
 
     if t_ps:
         os.environ['PYTHONPATH'] = ("/home/flo/GCE_NN")
-        ray.init(local_mode=True) #for debugging
-        #ray.init(**ray_settings)
+        #ray.init(local_mode=True) #for debugging
+        ray.init(**ray_settings)
 
         if "num_cpus" in ray_settings.keys():
             print("Ray: running on", ray_settings["num_cpus"], "CPUs.")
