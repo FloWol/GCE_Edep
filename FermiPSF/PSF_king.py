@@ -41,7 +41,7 @@ def params(eventclass, quartile, energy):
     elif eventclass==5:
         psf_file_name = 'psf_P8R2_ULTRACLEANVETO_V6_PSF.fits'
 
-    f = fits.open('/home/flo/GCE_NN/FermiPSF/psf_data/' + psf_file_name)
+    f = fits.open('../FermiPSF/psf_data/' + psf_file_name)
 
     ### Establish the auxiliary parameters
     if quartile == 1:

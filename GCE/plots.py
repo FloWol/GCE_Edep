@@ -1681,15 +1681,23 @@ def plot_ff_total_with_color_flux(params,maps, true_ffs, preds, nptfit_ffs=None,
 
     return scat_fig, scat_ax
 
+def mean_bins(Ebins):
+    mean_Ebins=[]
+    for i in range(0,len(Ebins)-1):
+        mean=(np.log10(Ebins[i+1])+np.log10(Ebins[i]))/2
+        mean_Ebins.append(10**mean)
+    return mean_Ebins
+
 def plot_mean_spectra(params,maps):
     # exposure=get_exposure()
     # true_flux, total_flux_per_map, flux_per_Ebin = get_flux_from_maps(maps, true_ffs)
     sum_map=maps.sum(0) # done to throw all counts into one map (temp, ebin)
-    energy_map=sum_map.sum(0) # some over templates to only get counts in energy space
+    energy_map=sum_map.sum(0) # sum over templates to only get counts in energy space
     Ebins = params.data["Ebins"]
 
-    plt.plot(range(0,len(Ebins)-1),energy_map, marker="^")
-    plt.xticks(range(0, len(Ebins) - 1))
+    Ebins=mean_bins(Ebins)
+    plt.xscale("log")
+    plt.plot(Ebins,energy_map, marker="^")
     #plt.xticks(Ebins)
     plt.title("Counts per energybins")
     plt.show()
@@ -1699,12 +1707,15 @@ def plot_spectra(params, maps):
     models = params.mod["models"]
     n_models = len(params.mod["models"])-1
 
-    plt.xticks(range(0, len(Ebins) - 1))
+    Ebins=mean_bins(Ebins)
+
     for model in range(0, n_models):
         for sky_map in range(0,len(maps)-1):
-            plt.scatter(range(0,len(Ebins)-1), maps[sky_map, model, :], marker='^')
+            plt.scatter(Ebins, maps[sky_map, model, :], marker='^')
 
         plt.title(str(models[model]))
+        plt.xscale("log")
+        plt.xticks(Ebins)
         plt.show()
 
 def plot_mean_spectra_template(params, maps):
@@ -1714,11 +1725,15 @@ def plot_mean_spectra_template(params, maps):
 
     sum_map = maps.sum(0) # done to throw all counts into one map (temp, ebin)
 
+    Ebins=mean_bins(Ebins)
+
+
     for model in range(0, n_models):
-        plt.plot(range(0,len(Ebins)-1), sum_map[model, :], marker='^')
-        plt.xticks(range(0,len(Ebins)-1))
-        #plt.xticks(Ebins)
+        plt.plot(Ebins, sum_map[model, :], marker='^')
+
         plt.title(str(models[model]))
+        plt.xticks(Ebins)
+        plt.xscale("log")
         plt.show()
 
 

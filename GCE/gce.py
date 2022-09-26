@@ -556,7 +556,7 @@ class Analysis:
         t_final = t_masked / t_masked.sum()
         total_mask_neg = self.template_dict["mask_ROI_full"]
 
-        Ebins=np.array([1,3,5])  #self.p.data["Ebins"]
+        self.p.data["Ebins"]
 
         r = self.p.data["outer_rad"] + 1
         inds_ps_outside_roi = set(np.setdiff1d(self.template_dict["indices_safety"], self.template_dict["indices_roi"]))

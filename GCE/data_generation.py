@@ -212,7 +212,7 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
     # Initialise Ray
 
     if t_ps:
-        os.environ['PYTHONPATH'] = ("/home/flo/GCE_NN")
+        #os.environ['PYTHONPATH'] = ("/home/flo/GCE_NN")
         #ray.init(local_mode=True) #for debugging
         ray.init(**ray_settings)
 
