@@ -10,6 +10,43 @@ import pickle
 from tensorflow import gather, gather_nd
 
 
+def get_exposure():
+    settings_dict = pickle.load(
+        open("/home/flo/GCE_NN/data/Combined_maps/Example_comb_256/settings_combined.pickle", "rb"))
+    exp = np.unique(np.asarray([settings_dict[key]["exp"] for key in settings_dict.keys()]), axis=0).squeeze()
+    indices_roi_all = np.asarray([settings_dict[temp]["indices_roi"] for temp in settings_dict.keys()])
+    indices_roi_unique = np.unique(indices_roi_all, axis=0)
+    exp_indices_roi = exp[indices_roi_unique.flatten()]
+    exposure = np.expand_dims(exp_indices_roi, 1)
+
+    return exposure
+
+def get_flux_from_maps(maps,true_ffs):
+    """
+
+    :param maps: sky maps of shape [number of maps ,templates,energy bins]
+    :param true_ffs: true values of flux fractions of shape [templates, energy bins]
+    :return: true_flux: converted maps from count space to flux space, shape [number of maps ,templates,energy bins]
+             total_flux_per_map: total flux of each maps, shape [number of maps ,templates,energy bins]
+             flux_per_Ebin: flux of each map in each energy bin, shape [number of maps, energy bins]
+    """
+
+    exposure=get_exposure()
+    n_models = maps.shape[1]
+
+    total_flux_per_map = np.zeros(shape=(maps.shape[0]))
+
+    # convert ff maps to flux maps
+    true_flux = np.zeros(shape=true_ffs.shape)
+    for image in range(0, maps.shape[0]):
+        for temp in range(0, n_models):
+            flux_per_pix_bin = maps[image] / exposure  # take one map and correct exposure(shape: pix, bins)
+            flux_per_bin = flux_per_pix_bin.sum(0)  # summiert über die pixel und gibt counts pro bin shape: (4,)
+            total_flux_per_map[image] = flux_per_bin.sum()
+            true_flux[image, temp, :] = true_ffs[image, temp, :] * flux_per_bin
+    flux_per_Ebin = true_flux.sum(1) #sum over templates to get maps x Ebin shape
+
+    return true_flux, total_flux_per_map, flux_per_Ebin
 
 def plot_flux_fractions_Ebin(params, true_ffs, preds, nptfit_ffs=None, out_file="ff_error_plot.pdf", legend=None,
                         show_stripes=True, show_stats=True, delta_y=0, marker="^", marker_nptf="o", ms=8, ms_nptfit=6,
@@ -715,13 +752,7 @@ def plot_flux_per_Ebin(params, maps,y_true, y_pred, image, lineplot = True, titl
     else:
         pred_stds = None
 
-    #for key in [*train_files_dict] sollten nur keys sein also model names
-
-    exp = np.unique(np.asarray([settings_dict[key]["exp"] for key in settings_dict.keys()]), axis=0).squeeze()
-    indices_roi_all = np.asarray([settings_dict[temp]["indices_roi"] for temp in settings_dict.keys()])
-    indices_roi_unique = np.unique(indices_roi_all, axis=0)
-    exp_indices_roi = exp[indices_roi_unique.flatten()]
-    exposure = np.expand_dims(exp_indices_roi, 1)
+    exposure=get_exposure()
 
     flux_per_pix_bin = maps[image]/exposure # take one map and correct exposure(shape: pix, bins)
     flux_per_bin = flux_per_pix_bin.sum(0)  #summiert über die pixel und gibt counts pro bin shape: (4,)
@@ -1223,24 +1254,10 @@ def plot_ff_ebins_with_color_flux(params,maps, true_ffs, preds, nptfit_ffs=None,
 
 
     # calculate exposure
-    settings_dict = pickle.load(
-        open("/home/flo/GCE_NN/data/Combined_maps/Example_comb_256/settings_combined.pickle", "rb"))
-    exp = np.unique(np.asarray([settings_dict[key]["exp"] for key in settings_dict.keys()]), axis=0).squeeze()
-    indices_roi_all = np.asarray([settings_dict[temp]["indices_roi"] for temp in settings_dict.keys()])
-    indices_roi_unique = np.unique(indices_roi_all, axis=0)
-    exp_indices_roi = exp[indices_roi_unique.flatten()]
-    exposure = np.expand_dims(exp_indices_roi, 1)
 
-    total_flux_per_map = np.zeros(shape=(maps.shape[0]))
+    true_flux, total_flux_per_map = get_flux_from_maps(maps, true_ffs)
 
-    # convert ff maps to flux maps
-    true_flux = np.zeros(shape=true_ffs.shape)
-    for image in range(0, maps.shape[0]):
-        for temp in range(0, n_models):
-            flux_per_pix_bin = maps[image] / exposure  # take one map and correct exposure(shape: pix, bins)
-            flux_per_bin = flux_per_pix_bin.sum(0)  # summiert über die pixel und gibt counts pro bin shape: (4,)
-            total_flux_per_map[image] = flux_per_bin.sum()
-            true_flux[image, temp, :] = true_ffs[image, temp, :] * flux_per_bin
+
 
     mean_abs_error_temp_Ebin = np.mean(np.abs(pred_ffs - true_ffs), 0)  # sum over batches
     max_abs_error_temp_Ebin = np.max(np.abs(pred_ffs - true_ffs), 0)
@@ -1324,7 +1341,7 @@ def plot_ff_ebins_with_color_flux(params,maps, true_ffs, preds, nptfit_ffs=None,
 def plot_flux_ebins_with_color_flux(params,maps, true_ffs, preds, nptfit_ffs=None, out_file="ff_error_plot.pdf", legend=None,
                              show_stripes=True, show_stats=True, delta_y=0, marker="^", marker_nptf="o", ms=8,
                              ms_nptfit=6,
-                             alpha=0.4, lw=0.8, lw_nptfit=1.6, ecolor=None, ticks=None, figsize=None):
+                             alpha=0.4, lw=0.8, lw_nptfit=1.6, ecolor=None, ticks=None, figsize=None, full_color=True):
     #Hier flux plots machen #TODO
     """
     Make an error plot of the NN flux fraction predictions.
@@ -1391,13 +1408,7 @@ def plot_flux_ebins_with_color_flux(params,maps, true_ffs, preds, nptfit_ffs=Non
 
 
     # calculate exposure
-    settings_dict = pickle.load(
-        open("/home/flo/GCE_NN/data/Combined_maps/Example_comb_256/settings_combined.pickle", "rb"))
-    exp = np.unique(np.asarray([settings_dict[key]["exp"] for key in settings_dict.keys()]), axis=0).squeeze()
-    indices_roi_all = np.asarray([settings_dict[temp]["indices_roi"] for temp in settings_dict.keys()])
-    indices_roi_unique = np.unique(indices_roi_all, axis=0)
-    exp_indices_roi = exp[indices_roi_unique.flatten()]
-    exposure = np.expand_dims(exp_indices_roi, 1)
+    exposure=get_exposure()
 
     total_flux_per_map = np.zeros(shape=(maps.shape[0]))
     total_flux_per_bin_per_map = np.zeros(shape=(maps.shape[0], maps.shape[2]))
@@ -1419,26 +1430,21 @@ def plot_flux_ebins_with_color_flux(params,maps, true_ffs, preds, nptfit_ffs=Non
     mean_abs_error = np.mean(mean_abs_error_temp_Ebin, 1)  # Sum over Ebins
     max_abs_error = np.max(max_abs_error_temp_Ebin, 1)
 
-    # q95_abs_error = np.quantile(np.abs(pred_ffs - true_ffs), .95, axis=0)
-    # q99_abs_error = np.quantile(np.abs(pred_ffs - true_ffs), .99, axis=0)
 
 
     scat_fig, scat_ax = plt.subplots(n_row, n_col, figsize=figsize, squeeze=False, sharex="none", sharey="none")
     for i_ax, ax in enumerate(scat_ax.flatten()):
-        # if i_ax >= len(models):
-        #     continue
-        upper = 1e-6
-        lower = 1e-8
+        upper = 1
+        lower = 0
         ax.plot([lower, upper], [lower, upper], 'k-', lw=2, alpha=0.5)
         if show_stripes:
 
             ax.fill_between([lower, upper], y1=[lower*0.05,upper* 1.05], y2=[-0.05* lower, 0.95*upper], color="0.7", alpha=0.5)
             ax.fill_between([lower, upper], y1=[lower*0.1,upper* 1.1], y2=[-0.1* lower, 0.9*upper], color="0.9", alpha=0.5)
-        ax.set_aspect("equal", "box")
+        #ax.set_aspect("equal", "box")
 
     # true_ffs = np.sum(true_ffs, axis=2)
-    # pred_ffs = np.sum(pred_ffs, axis=2)
-    # pred_stds = np.mean(pred_stds, axis=2)
+
 
     for i_ax in range(n_row):  # , ax in enumerate(scat_ax.flatten(), start=0)
         for ebin in range(0, n_col):
@@ -1454,30 +1460,40 @@ def plot_flux_ebins_with_color_flux(params,maps, true_ffs, preds, nptfit_ffs=Non
                             , fmt=marker, ms=0,
                                 mfc=colors[i_ax],
                                 mec="k", lw=lw, alpha=alpha, zorder=3, label="NN",
-                                yerr=pred_stds[:, i_ax, ebin], elinewidth=2)
+                                yerr=pred_stds[:, i_ax, ebin]*total_flux_per_bin_per_map[:,ebin], elinewidth=2)
 
 
-                ax.scatter(x=true_ffs[:, i_ax, ebin]*total_flux_per_bin_per_map[:,ebin], y=pred_ffs[:, i_ax, ebin]*total_flux_per_bin_per_map[:,ebin],
-                     c=true_flux[:, i_ax, ebin], cmap="viridis",  alpha=alpha, zorder=3, label="NN") #vmin=true_flux.min(), vmax=true_flux.max()/10,
+                if full_color == True:
+                    ax.scatter(x=true_ffs[:, i_ax, ebin]*total_flux_per_bin_per_map[:,ebin], y=pred_ffs[:, i_ax, ebin]*total_flux_per_bin_per_map[:,ebin],
+                         c=true_flux[:, i_ax, ebin], vmin=true_flux.min(), vmax=true_flux.max()/3, cmap="viridis",  alpha=alpha, zorder=3, label="NN") #vmin=true_flux.min(), vmax=true_flux.max()/10,
                 #plt.colorbar(scat_fig)
+                else:
+                    ax.scatter(x=true_ffs[:, i_ax, ebin] * total_flux_per_bin_per_map[:, ebin],
+                               y=pred_ffs[:, i_ax, ebin] * total_flux_per_bin_per_map[:, ebin],
+                               c=true_flux[:, i_ax, ebin],
+                               cmap="viridis", alpha=alpha, zorder=3,
+                               label="NN")  # vmin=true_flux.min(), vmax=true_flux.max()/10,
 
-    #         if i_ax == 0 and legend:
-    #             handles, labels = ax.get_legend_handles_labels()
-    #             ax.legend(handles[::-1], labels[::-1], frameon=True, loc='upper left', bbox_to_anchor=(0, 0.85),
-    #                       handletextpad=0.07, borderpad=0.25, fontsize=14)
-    #         if show_stats:
-    #             ax.text(0.62, 0.14 + delta_y, r"$\it{Mean}$", ha="center", va="center", size=12)
-    #             ax.text(0.62, 0.07 + delta_y, "{:.2f}%".format(mean_abs_error_temp_Ebin[i_ax, ebin] * 100), ha="center",
-    #                     va="center",
-    #                     color=colors[i_ax], size=12)
-    #         # ax.set_xlim([-0.02, 1.02])
-    #         # ax.set_ylim([-0.02, 1.02])
-    #         ax.text(0.03, 0.97, model_names[i_ax], va="top", ha="left")
-    #
-    # scat_fig.text(0.5, 0.025, "True", ha="center", va="center")
-    # scat_fig.text(0.02, 0.5, "Estimated", ha="center", va="center", rotation="vertical")
-    #plt.tight_layout()
-    #plt.subplots_adjust(hspace=0.0, wspace=0.0)
+                scale = max(true_ffs[:, i_ax, ebin]*total_flux_per_bin_per_map[:,ebin])
+
+
+            if i_ax == 0 and legend:
+                handles, labels = ax.get_legend_handles_labels()
+                ax.legend(handles[::-1], labels[::-1], frameon=True, loc='upper left', bbox_to_anchor=(0, 0.85),
+                          handletextpad=0.07, borderpad=0.25, fontsize=14)
+            if show_stats:
+                ax.text(0.62, 0.14 + delta_y, r"$\it{Mean}$", ha="center", va="center", size=12)
+                ax.text(0.62, 0.07 + delta_y, "{:.2f}%".format(mean_abs_error_temp_Ebin[i_ax, ebin] * 100), ha="center",
+                        va="center",
+                        color=colors[i_ax], size=12)
+            ax.set_xlim([0, scale+0.1*scale])
+            ax.set_ylim([0, scale+0.1*scale])
+            ax.text(0.03, 0.97, model_names[i_ax], va="top", ha="left")
+
+    scat_fig.text(0.5, 0.025, "True", ha="center", va="center")
+    scat_fig.text(0.02, 0.5, "Estimated", ha="center", va="center", rotation="vertical")
+    plt.tight_layout()
+    plt.subplots_adjust(hspace=0.5, wspace=0.5)
     plt.show()
 
     if out_file is not None:
@@ -1562,13 +1578,7 @@ def plot_ff_total_with_color_flux(params,maps, true_ffs, preds, nptfit_ffs=None,
 
 
     # calculate exposure
-    settings_dict = pickle.load(
-        open("/home/flo/GCE_NN/data/Combined_maps/Example_comb_256/settings_combined.pickle", "rb"))
-    exp = np.unique(np.asarray([settings_dict[key]["exp"] for key in settings_dict.keys()]), axis=0).squeeze()
-    indices_roi_all = np.asarray([settings_dict[temp]["indices_roi"] for temp in settings_dict.keys()])
-    indices_roi_unique = np.unique(indices_roi_all, axis=0)
-    exp_indices_roi = exp[indices_roi_unique.flatten()]
-    exposure = np.expand_dims(exp_indices_roi, 1)
+    exposure=get_exposure()
 
     total_flux_per_map = np.zeros(shape=(maps.shape[0]))
 
@@ -1670,3 +1680,35 @@ def plot_ff_total_with_color_flux(params,maps, true_ffs, preds, nptfit_ffs=None,
         scat_fig.savefig(os.path.join(save_folder, out_file), bbox_inches="tight")
 
     return scat_fig, scat_ax
+
+def plot_mean_spectra(params,maps):
+    # exposure=get_exposure()
+    # true_flux, total_flux_per_map, flux_per_Ebin = get_flux_from_maps(maps, true_ffs)
+    sum_map=maps.sum(0) # done to throw all counts into one map (temp, ebin)
+    energy_map=sum_map.sum(0) # some over templates to only get counts in energy space
+    Ebins = params.data["Ebins"]
+
+    plt.plot(range(0,len(Ebins)-1),energy_map, marker="^")
+    plt.xticks(range(0, len(Ebins) - 1))
+    #plt.xticks(Ebins)
+    plt.title("Counts per energybins")
+    plt.show()
+
+
+
+def plot_mean_spectra_template(params, maps):
+    Ebins = params.data["Ebins"]
+    models = params.mod["models"]
+    n_models = len(params.mod["models"])-1
+
+    sum_map = maps.sum(0) # done to throw all counts into one map (temp, ebin)
+
+    for model in range(0, n_models):
+        plt.plot(range(0,len(Ebins)-1), sum_map[model, :], marker='^')
+        plt.xticks(range(0,len(Ebins)-1))
+        #plt.xticks(Ebins)
+        plt.title(str(models[model]))
+        plt.show()
+
+
+

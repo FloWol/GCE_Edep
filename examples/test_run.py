@@ -34,8 +34,9 @@ tau = np.arange(5, 100, 5) * 0.01  # quantile levels for SCD histograms, from 5%
 pred = gce.predict(test_data, tau=tau, multiple_taus=True)  # get the NN predictions
 
 
-
-gce.plot_flux_ebins_with_color_flux(test_data,test_ffs, pred)
+gce.plot_mean_spectra(test_data)
+gce.plot_mean_spectra_template(test_data)
+#gce.plot_flux_ebins_with_color_flux(test_data,test_ffs, pred)
 # abv_thresh, outlier_pred, outlier_errors, outlier_true = gce.plot_outliers(test_ffs, pred, threshold=0.11, only_errors=False,show_mapID=False)
 # gce.plot_flux_fractions_Ebin(test_ffs, pred)
 # gce.plot_flux_fractions_total(test_ffs, pred)
