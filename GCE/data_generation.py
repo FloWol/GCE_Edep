@@ -124,11 +124,33 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
         # For each chunk
         for chunk in range(n_chunk):
 
+            #draw energy functions
             mean_draw_E = np.random.uniform(*params.Edep[temp]["mean_exp"], size=n_sim_per_chunk)
             var_draw_E = params.Edep[temp]["var_exp"] * np.random.chisquare(1, size=n_sim_per_chunk)
             skew_draw_E = np.random.normal(loc=0, scale=params.Edep[temp]["skew_std"], size=n_sim_per_chunk)
 
+            c  = np.zeros(shape=(n_sim_per_chunk,len(Ebins)-1)) # weight for normalisation
+            x = Ebins
+            sample_size = 1000000
 
+            for current_map in range(0, n_sim_per_chunk):
+                cdf = stats.skewnorm.cdf(np.log10(x), a=skew_draw_E[current_map], loc=mean_draw_E[current_map], scale=np.sqrt(var_draw_E[current_map]))
+                Energy_Sampler = CDFSampler(xvals=x,cdf=cdf)
+                E_draw = Energy_Sampler(sample_size) #PFUSCH auf logarithm aufpassen
+                Eind = np.digitize(E_draw, Ebins, right=True)
+                num, counts = np.unique(Eind, return_counts=True)
+
+                #to avoid non sampling of certain energy bins and false positioning:
+                helper = np.zeros(len(Ebins) - 1)
+                helper[num - 1] = counts
+                c[current_map,:] = helper/sample_size
+
+
+
+
+
+
+            #TODO assert mayb?
 
             # Draw the (log) amplitude
             a = np.asarray([random.uniform(prior_dict[temp][0], prior_dict[temp][1])
@@ -137,31 +159,15 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
             # Generate the maps: NOTE: exposure-correction is included in the Poissonian templates ("T_counts")
             random_draw_fn = np.random.poisson if do_poisson_scatter_p else lambda x: x
             if poisson_a_is_log:
-                sim_maps = np.asarray([random_draw_fn((10.0 ** a[i]) * t_masked_compressed)
+                sim_maps = np.asarray([random_draw_fn((10.0 ** (a[i]*c[i,:])) * t_masked_compressed)
                                        for i in range(n_sim_per_chunk)])
 
             else:
-                sim_maps = np.asarray([random_draw_fn(a[i] * t_masked_compressed)
+                sim_maps = np.asarray([random_draw_fn((a[i]*c[i,:]) * t_masked_compressed)
                                        for i in range(n_sim_per_chunk)])
 
-            map_arr = np.zeros((n_sim_per_chunk, sim_maps[1].size, len(Ebins) - 1), dtype=np.int32)  # 50x7700x3
-
             # poissonian energy dependence part 2
-            current_map = 0
-            x = Ebins
-            for i in sim_maps:  # 7749
 
-                pix_counts = np.repeat(range(len(i)), i)
-                cdf = stats.skewnorm.cdf(np.log10(x), a=skew_draw_E[current_map], loc=mean_draw_E[current_map], scale=np.sqrt(var_draw_E[current_map]))
-                Energy_Sampler = CDFSampler(xvals=x,cdf=cdf)
-                E_draw = Energy_Sampler(pix_counts.size) #PFUSCH auf logarithm aufpassen
-                # E = pdf_E_samp(pix_counts.size)
-                Eind = np.digitize(E_draw, Ebins, right=True)
-                # print(Eind.size)
-
-
-                np.add.at(map_arr[current_map], (pix_counts, Eind - 1), int(1))
-                current_map += 1
 
                 # info
             # a shape: (50,) chunk size
@@ -190,7 +196,7 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
             # Save maps
             # The full map can be recovered as
             # map_full = np.zeros(npix), map_full[data_out["indices_roi"]] = data_out["val"]
-            data_out["data"] = map_arr.astype(dtype_data)
+            data_out["data"] = sim_maps.astype(dtype_data)
             data_out["info"] = dict()
             data_out["info"]["A"] = a
             with open(os.path.join(temp_folder, name + "_" + str(job_id) + "_" + str(chunk) + ".pickle"), 'wb') as f:
