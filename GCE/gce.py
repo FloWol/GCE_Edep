@@ -334,7 +334,7 @@ class Analysis:
             else:
                 KeyError("Dictionary does not contain key '{:}'".format(subdict))
 
-    def _store_template_dict(self):
+    def _store_template_dict(self, model_O=True):
         """
         Store specified templates in a dictionary, together with exposure and mask.
         """
@@ -386,8 +386,13 @@ class Analysis:
 
         # Get exposure map
         fermi_exp = hp.reorder(get_template(fermi_folder, "exp"), r2n=True)
-        fermi_exp_compressed = fermi_exp[indices_roi]
-        fermi_mean_exp_roi = fermi_exp_compressed.mean()
+        if model_O:
+            fermi_exp= fermi_exp[10:20]
+            fermi_exp_compressed = fermi_exp[:,indices_roi]
+        else:
+            fermi_exp_compressed = fermi_exp[:, indices_roi]
+
+        fermi_mean_exp_roi = fermi_exp_compressed.mean(axis=1)
 
         if self.p.data["exposure"] == "Fermi":
             exp = fermi_exp.copy()
@@ -398,22 +403,22 @@ class Analysis:
         else:
             raise NotImplementedError
 
-        exp_compressed = exp[indices_roi]
-        mean_exp_roi = exp_compressed.mean()
+        exp_compressed = exp[:,indices_roi]
+        mean_exp_roi = exp_compressed.mean(axis=1)
 
         # Store exposure for Fermi map (always needed because templates are stored exposure corrected!)
-        temp_dict["fermi_exp"] = fermi_exp
-        temp_dict["fermi_exp_compressed"] = fermi_exp_compressed
+        temp_dict["fermi_exp"] = fermi_exp.T
+        temp_dict["fermi_exp_compressed"] = fermi_exp_compressed.T
         temp_dict["fermi_mean_exp_roi"] = fermi_mean_exp_roi
-        temp_dict["fermi_rescale"] = fermi_exp / fermi_mean_exp_roi
-        temp_dict["fermi_rescale_compressed"] = fermi_exp_compressed / fermi_mean_exp_roi
+        temp_dict["fermi_rescale"] = (fermi_exp/fermi_mean_exp_roi[:,np.newaxis]).T
+        temp_dict["fermi_rescale_compressed"] = (fermi_exp_compressed / fermi_mean_exp_roi[:,np.newaxis]).T
 
         # Store exposure for data considered here
-        temp_dict["exp"] = exp
-        temp_dict["exp_compressed"] = exp_compressed
+        temp_dict["exp"] = exp.T
+        temp_dict["exp_compressed"] = exp_compressed.T
         temp_dict["mean_exp_roi"] = mean_exp_roi
-        temp_dict["rescale"] = exp / mean_exp_roi
-        temp_dict["rescale_compressed"] = exp_compressed / mean_exp_roi
+        temp_dict["rescale"] = (exp / mean_exp_roi[:,np.newaxis]).T
+        temp_dict["rescale_compressed"] = (exp_compressed / mean_exp_roi[:,np.newaxis]).T
 
         # Iterate over the templates
         t_p = self.p.mod["models_P"]
@@ -427,6 +432,9 @@ class Analysis:
         for temp in t_p + t_ps:
             temp_p_name = temp[:-3] if "_PS" in temp else temp
             t = hp.reorder(get_template(fermi_folder, temp_p_name), r2n=True)
+            t = t.T
+            if "_O" not in temp and model_O == True: #check if we use model O to choose correct energies
+                t=t[:,10:20]
 
             # if data has Fermi exposure
             if self.p.data["exposure"] == "Fermi":
@@ -437,7 +445,7 @@ class Analysis:
             else:
                 t_counts = t_flux = t / temp_dict["fermi_rescale"]
 
-            counts_to_flux_ratio_roi = t_counts[indices_roi].sum() / t_flux[indices_roi].sum()
+            counts_to_flux_ratio_roi = t_counts[indices_roi,:].sum(0) / t_flux[indices_roi,:].sum(0) #t_counts[indices_roi].sum() / t_flux[indices_roi].sum()
 
             temp_dict["T_counts"][temp] = t_counts
             temp_dict["T_flux"][temp] = t_flux
@@ -556,7 +564,7 @@ class Analysis:
         t_final = t_masked / t_masked.sum()
         total_mask_neg = self.template_dict["mask_ROI_full"]
 
-        self.p.data["Ebins"]
+        Ebins=self.p.data["Ebins"]
 
         r = self.p.data["outer_rad"] + 1
         inds_ps_outside_roi = set(np.setdiff1d(self.template_dict["indices_safety"], self.template_dict["indices_roi"]))

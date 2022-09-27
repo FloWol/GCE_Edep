@@ -96,7 +96,7 @@ def get_params(int_flag=0):
     ###################################
     p_gen = DotDict()
     p_gen["data_root"] = "/home/flo/GCE_NN/data"  # data folder
-    p_gen["fermi_root"] = os.path.join(p_gen["data_root"], "fermi_data_573w")  # root folder containing Fermi data
+    p_gen["fermi_root"] = os.path.join(p_gen["data_root"], "fermi_data_edep")  # root folder containing Fermi data
     p_gen["template_maps_root"] = os.path.join(p_gen["data_root"], "Template_maps")  # folder for template maps
     p_gen["combined_maps_root"] = os.path.join(p_gen["data_root"], "Combined_maps")  # folder for combined maps
     p_gen["models_root"] = "../models"  # folder for models
@@ -115,7 +115,7 @@ def get_params(int_flag=0):
     p_data["nside"] = int(256)  # nside resolution parameter of the data
     p_data["exposure"] = "Fermi"  # one of "Fermi", "Fermi_mean", or constant integer
     p_data["psf"] = True  # if True: apply Fermi PSF to PS templates when generating PS maps
-    p_data["Ebins"] = np.logspace(0,1.3,30)#np.linspace(0.1,100,30)#np.array([0.1,1,6,20,50,100])#np.array([0.1,1,3,10, ,100])#np.array([0.3,0.69,1.4])#np.array([0.1, 0.2, 0.3, 0.5, 0.8, 1.5, 10])
+    p_data["Ebins"] = np.logspace(0,1.3,6)#np.linspace(0.1,100,30)#np.array([0.1,1,6,20,50,100])#np.array([0.1,1,3,10, ,100])#np.array([0.3,0.69,1.4])#np.array([0.1, 0.2, 0.3, 0.5, 0.8, 1.5, 10])
     # (see the function fermi_psf() in data_utils.py)
     p["data"] = p_data
 

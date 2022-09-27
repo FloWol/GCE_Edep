@@ -12,19 +12,19 @@ gce.load_params("../parameter_files/parameters.py")
 #gce.psf_make_map("gce_12_PS")
 
 
-# ray_settings = {"num_cpus": 4}  # select the number of CPUs here
-# gce.generate_template_maps(ray_settings, n_example_plots=5, job_id=0)
-# #
-# gce.combine_template_maps(save_filenames=True, do_combine=True)
+ray_settings = {"num_cpus": 4}  # select the number of CPUs here
+gce.generate_template_maps(ray_settings, n_example_plots=5, job_id=0)
+#
+gce.combine_template_maps(save_filenames=True, do_combine=True)
 
-gce.build_pipeline()
-
-n_samples = 100
-test_samples = gce.datasets["train"].get_samples(n_samples)
-test_data, test_ffs, test_hists = test_samples["data"], test_samples["label"][0], test_samples["label"][0]
-tau = np.arange(5, 100, 5) * 0.01  # quantile levels for SCD histograms, from 5% to 95% in steps of 5%
-gce.plot_mean_spectra(test_data)
-gce.plot_mean_spectra_template(test_data)
+# gce.build_pipeline()
+#
+# n_samples = 100
+# test_samples = gce.datasets["train"].get_samples(n_samples)
+# test_data, test_ffs, test_hists = test_samples["data"], test_samples["label"][0], test_samples["label"][0]
+# tau = np.arange(5, 100, 5) * 0.01  # quantile levels for SCD histograms, from 5% to 95% in steps of 5%
+# gce.plot_mean_spectra(test_data)
+# gce.plot_mean_spectra_template(test_data)
 #gce.plot_spectra(test_data)
 
 # #

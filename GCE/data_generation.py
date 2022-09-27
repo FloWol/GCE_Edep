@@ -109,8 +109,8 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
         indices_roi = temp_dict["indices_roi"]
 
         # Mask template and compress
-        t_masked = t * (1 - total_mask_neg)
-        t_masked_compressed = t_masked[indices_roi]
+        t_masked = t * (1 - total_mask_neg)[:,np.newaxis]
+        t_masked_compressed = t_masked[indices_roi,:]
 
         # Make a subfolder
         temp_folder = os.path.join(output_path, temp)

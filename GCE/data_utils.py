@@ -121,90 +121,179 @@ def make_mask_total(nside=128,
     return mask_array
 
 
-def get_template(fermi_folder, temp):
+def get_template(fermi_folder, temp, smooth=True):  #, model_O=False)
     """
     Returns a template.
     :param fermi_folder: folder containing the template maps
     :param temp: short name of template
     :return: template
     """
-    if temp == "iso":
-        t = np.load(os.path.join(fermi_folder, 'template_iso.npy'))
-    elif temp == "dif":
-        t = np.load(os.path.join(fermi_folder, 'template_dif.npy'))
-    elif temp == "bub":
-        t = np.load(os.path.join(fermi_folder, 'template_bub.npy'))
-    elif temp == "bub_var":
-        try:
-            t = np.load(os.path.join(fermi_folder, 'template_nbub.npy'))
-        except FileNotFoundError:
-            t = np.load(os.path.join(fermi_folder, 'template_bub_alt.npy'))
-    elif temp == "gce":
-        try:
-            t = np.load(os.path.join(fermi_folder, 'template_gce.npy'))
-        except FileNotFoundError:
-            t = np.load(os.path.join(fermi_folder, 'template_nfw_g1p0.npy'))
-    elif temp == "gce_12":
-        try:
-            t = np.load(os.path.join(fermi_folder, 'template_gce_gamma_1.20.npy'))
-        except FileNotFoundError:
-            t = np.load(os.path.join(fermi_folder, 'template_nfw_g1p2.npy'))
-    elif temp == "gce_12_N":
-        t = np.load(os.path.join(fermi_folder, 'template_gce_gamma_1.20_N.npy'))
-    elif temp == "gce_12_S":
-        t = np.load(os.path.join(fermi_folder, 'template_gce_gamma_1.20_S.npy'))
-    elif temp == "disk":
-        t = np.load(os.path.join(fermi_folder, 'template_dsk.npy'))
-    elif temp == "thin_disk":
-        try:
-            t = np.load(os.path.join(fermi_folder, 'template_disk_r_s_5_z_s_0.3.npy'))
-        except FileNotFoundError:
-            t = np.load(os.path.join(fermi_folder, 'template_dsk_z0p3.npy'))
-    elif temp == "thick_disk":
-        try:
-            t = np.load(os.path.join(fermi_folder, 'template_disk_r_s_5_z_s_1.npy'))
-        except FileNotFoundError:
-            t = np.load(os.path.join(fermi_folder, 'template_dsk_z1p0.npy'))
-    elif temp == "dif_O_pibs":
-        try:
-            t = np.load(os.path.join(fermi_folder, 'ModelO_r25_q1_pibrem.npy'))
-        except FileNotFoundError:
-            t = np.load(os.path.join(fermi_folder, 'template_Opi.npy'))
-    elif temp == "dif_O_ic":
-        try:
-            t = np.load(os.path.join(fermi_folder, 'ModelO_r25_q1_ics.npy'))
-        except FileNotFoundError:
-            t = np.load(os.path.join(fermi_folder, 'template_Oic.npy'))
-    elif temp == "dif_A_pibs":
-        t = np.load(os.path.join(fermi_folder, 'template_Api.npy'))
-    elif temp == "dif_A_ic":
-        t = np.load(os.path.join(fermi_folder, 'template_Aic.npy'))
-    elif temp == "dif_F_pibs":
-        t = np.load(os.path.join(fermi_folder, 'template_Fpi.npy'))
-    elif temp == "dif_F_ic":
-        t = np.load(os.path.join(fermi_folder, 'template_Fic.npy'))
-    elif temp == "psc_3":
-        try:
-            t = np.load(os.path.join(fermi_folder, 'template_psc.npy'))
-        except FileNotFoundError:
-            t = np.load(os.path.join(fermi_folder, 'template_psc_3fgl.npy'))
-    elif temp == "psc_4":
-        t = np.load(os.path.join(fermi_folder, 'template_psc_4fgl.npy'))
-    elif temp == "3FGL_mask":
-        try:
-            t = np.load(os.path.join(fermi_folder, 'fermidata_pscmask.npy'))
-        except FileNotFoundError:
-            t = np.load(os.path.join(fermi_folder, 'fermidata_pscmask_3fgl.npy'))
-    elif temp == "4FGL_mask":
-        t = np.load(os.path.join(fermi_folder, 'fermidata_pscmask_4fgl.npy'))
-    elif temp == "exp":
-        t = np.load(os.path.join(fermi_folder, 'fermidata_exposure.npy'))
-    elif temp == "counts":
-        t = np.load(os.path.join(fermi_folder, "fermidata_counts.npy"))
-    elif temp == "fermi_map":
-        t = np.load(os.path.join(fermi_folder, "fermidata_counts.npy"))
+    if smooth == False:
+        if temp == "iso":
+            t = np.load(os.path.join(fermi_folder, 'template_iso.npy'))
+        elif temp == "dif":
+            t = np.load(os.path.join(fermi_folder, 'template_dif.npy'))
+        elif temp == "bub":
+            t = np.load(os.path.join(fermi_folder, 'template_bub.npy'))
+        elif temp == "bub_var":
+            try:
+                t = np.load(os.path.join(fermi_folder, 'template_nbub.npy'))
+            except FileNotFoundError:
+                t = np.load(os.path.join(fermi_folder, 'template_bub_alt.npy'))
+        elif temp == "gce":
+            try:
+                t = np.load(os.path.join(fermi_folder, 'template_gce.npy'))
+            except FileNotFoundError:
+                t = np.load(os.path.join(fermi_folder, 'template_nfw_g1p0.npy'))
+        elif temp == "gce_12":
+            try:
+                t = np.load(os.path.join(fermi_folder, 'template_gce_gamma_1.20.npy'))
+            except FileNotFoundError:
+                t = np.load(os.path.join(fermi_folder, 'template_nfw_g1p2.npy'))
+        elif temp == "gce_12_N":
+            t = np.load(os.path.join(fermi_folder, 'template_gce_gamma_1.20_N.npy'))
+        elif temp == "gce_12_S":
+            t = np.load(os.path.join(fermi_folder, 'template_gce_gamma_1.20_S.npy'))
+        elif temp == "disk":
+            t = np.load(os.path.join(fermi_folder, 'template_dsk.npy'))
+        elif temp == "thin_disk":
+            try:
+                t = np.load(os.path.join(fermi_folder, 'template_disk_r_s_5_z_s_0.3.npy'))
+            except FileNotFoundError:
+                t = np.load(os.path.join(fermi_folder, 'template_dsk_z0p3.npy'))
+        elif temp == "thick_disk":
+            try:
+                t = np.load(os.path.join(fermi_folder, 'template_disk_r_s_5_z_s_1.npy'))
+            except FileNotFoundError:
+                t = np.load(os.path.join(fermi_folder, 'template_dsk_z1p0.npy'))
+        elif temp == "dif_O_pibs":
+            model_O = True
+            try:
+                t = np.load(os.path.join(fermi_folder, 'ModelO_r25_q1_pibrem.npy'))
+            except FileNotFoundError:
+                t = np.load(os.path.join(fermi_folder, 'template_Opi.npy'))
+        elif temp == "dif_O_ic":
+            model_O = True
+            try:
+                t = np.load(os.path.join(fermi_folder, 'ModelO_r25_q1_ics.npy'))
+            except FileNotFoundError:
+                t = np.load(os.path.join(fermi_folder, 'template_Oic.npy'))
+        elif temp == "dif_A_pibs":
+            t = np.load(os.path.join(fermi_folder, 'template_Api.npy'))
+        elif temp == "dif_A_ic":
+            t = np.load(os.path.join(fermi_folder, 'template_Aic.npy'))
+        elif temp == "dif_F_pibs":
+            t = np.load(os.path.join(fermi_folder, 'template_Fpi.npy'))
+        elif temp == "dif_F_ic":
+            t = np.load(os.path.join(fermi_folder, 'template_Fic.npy'))
+        elif temp == "psc_3":
+            try:
+                t = np.load(os.path.join(fermi_folder, 'template_psc.npy'))
+            except FileNotFoundError:
+                t = np.load(os.path.join(fermi_folder, 'template_psc_3fgl.npy'))
+        elif temp == "psc_4":
+            t = np.load(os.path.join(fermi_folder, 'template_psc_4fgl.npy'))
+        elif temp == "3FGL_mask":
+            try:
+                t = np.load(os.path.join(fermi_folder, 'fermidata_pscmask.npy'))
+            except FileNotFoundError:
+                t = np.load(os.path.join(fermi_folder, 'fermidata_pscmask_3fgl.npy'))
+        elif temp == "4FGL_mask":
+            t = np.load(os.path.join(fermi_folder, 'fermidata_pscmask_4fgl.npy'))
+        elif temp == "exp":
+            t = np.load(os.path.join(fermi_folder, 'fermidata_exposure.npy'))
+        elif temp == "counts":
+            t = np.load(os.path.join(fermi_folder, "fermidata_counts.npy"))
+        elif temp == "fermi_map":
+            t = np.load(os.path.join(fermi_folder, "fermidata_counts.npy"))
+        else:
+            raise NotImplementedError("Template", temp, "not available!")
+
     else:
-        raise NotImplementedError("Template", temp, "not available!")
+        if temp == "iso":
+            t = np.load(os.path.join(fermi_folder, 'template_iso_smooth.npy'))
+        elif temp == "dif":
+            t = np.load(os.path.join(fermi_folder, 'template_dif.npy'))
+        elif temp == "bub":
+            t = np.load(os.path.join(fermi_folder, 'template_bub_smooth.npy'))
+        elif temp == "bub_var":
+            try:
+                t = np.load(os.path.join(fermi_folder, 'template_nbub.npy'))
+            except FileNotFoundError:
+                t = np.load(os.path.join(fermi_folder, 'template_bub_alt_smooth.npy'))
+        elif temp == "gce":
+            try:
+                t = np.load(os.path.join(fermi_folder, 'template_gce.npy'))
+            except FileNotFoundError:
+                t = np.load(os.path.join(fermi_folder, 'template_nfw_g1p0_smooth.npy'))
+        elif temp == "gce_12":
+            try:
+                t = np.load(os.path.join(fermi_folder, 'template_gce_gamma_1.20.npy'))
+            except FileNotFoundError:
+                t = np.load(os.path.join(fermi_folder, 'template_nfw_g1p2_smooth.npy'))
+        elif temp == "gce_12_N":
+            t = np.load(os.path.join(fermi_folder, 'template_gce_gamma_1.20_N.npy'))
+        elif temp == "gce_12_S":
+            t = np.load(os.path.join(fermi_folder, 'template_gce_gamma_1.20_S.npy'))
+        elif temp == "disk":
+            t = np.load(os.path.join(fermi_folder, 'template_dsk.npy'))
+        elif temp == "thin_disk":
+            try:
+                t = np.load(os.path.join(fermi_folder, 'template_disk_r_s_5_z_s_0.3.npy'))
+            except FileNotFoundError:
+                t = np.load(os.path.join(fermi_folder, 'template_dsk_z0p3.npy'))
+        elif temp == "thick_disk":
+            try:
+                t = np.load(os.path.join(fermi_folder, 'template_disk_r_s_5_z_s_1.npy'))
+            except FileNotFoundError:
+                t = np.load(os.path.join(fermi_folder, 'template_dsk_z1p0.npy'))
+        elif temp == "dif_O_pibs":
+            model_O = True
+            try:
+                t = np.load(os.path.join(fermi_folder, 'ModelO_r25_q1_pibrem.npy'))
+            except FileNotFoundError:
+                t = np.load(os.path.join(fermi_folder, 'template_Opi.npy'))
+        elif temp == "dif_O_ic":
+            model_O = True
+            try:
+                t = np.load(os.path.join(fermi_folder, 'ModelO_r25_q1_ics.npy'))
+            except FileNotFoundError:
+                t = np.load(os.path.join(fermi_folder, 'template_Oic.npy'))
+        elif temp == "dif_A_pibs":
+            t = np.load(os.path.join(fermi_folder, 'template_Api.npy'))
+        elif temp == "dif_A_ic":
+            t = np.load(os.path.join(fermi_folder, 'template_Aic.npy'))
+        elif temp == "dif_F_pibs":
+            t = np.load(os.path.join(fermi_folder, 'template_Fpi.npy'))
+        elif temp == "dif_F_ic":
+            t = np.load(os.path.join(fermi_folder, 'template_Fic.npy'))
+        elif temp == "psc_3":
+            try:
+                t = np.load(os.path.join(fermi_folder, 'template_psc.npy'))
+            except FileNotFoundError:
+                t = np.load(os.path.join(fermi_folder, 'template_psc_3fgl.npy'))
+        elif temp == "psc_4":
+            t = np.load(os.path.join(fermi_folder, 'template_psc_4fgl.npy'))
+        elif temp == "3FGL_mask":
+            try:
+                t = np.load(os.path.join(fermi_folder, 'fermidata_pscmask.npy'))
+            except FileNotFoundError:
+                t = np.load(os.path.join(fermi_folder, 'fermidata_pscmask_3fgl.npy'))
+        elif temp == "4FGL_mask":
+            t = np.load(os.path.join(fermi_folder, 'fermidata_pscmask_4fgl.npy'))
+        elif temp == "exp":
+            t = np.load(os.path.join(fermi_folder, 'fermidata_exposure.npy'))
+        elif temp == "counts":
+            t = np.load(os.path.join(fermi_folder, "fermidata_counts.npy"))
+        elif temp == "fermi_map":
+            t = np.load(os.path.join(fermi_folder, "fermidata_counts.npy"))
+        else:
+            raise NotImplementedError("Template", temp, "not available!")
+
+
+
+
+
     return t
 
 
