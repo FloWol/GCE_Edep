@@ -144,7 +144,7 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
                 helper = np.zeros(len(Ebins) - 1)
                 helper[num - 1] = counts
                 c[current_map,:] = helper/sample_size
-
+ #Test skewness 0 plotten
 
 
 
@@ -205,12 +205,13 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
             # Plot some maps and save
             if chunk == 0 and int(job_id) == 0 and save_example_plot:
                 plt.ioff()
-                hp.mollview(t_masked, title="Template (exposure-corrected)", nest=True)
-                hp.mollview(exp, title="Exposure (nside = " + str(nside) + ")", nest=True)
+                hp.mollview(t_masked.sum(1), title="Template (exposure-corrected)", nest=True)
+                hp.mollview(exp.sum(1), title="Exposure (nside = " + str(nside) + ")", nest=True)
                 hp.mollview(total_mask_neg, title="Mask (" + str(mask_type) + ")", nest=True)
                 for i in range(n_example_plots):
-                    hp.mollview(masked_to_full(sim_maps[i, :], indices_roi, nside=nside),
-                                title=int(np.round(sim_maps[i, :].sum())), nest=True)
+                    map_to_plot=sim_maps.sum(2)
+                    hp.mollview(masked_to_full(map_to_plot[i, :], indices_roi, nside=nside),
+                                title=int(np.round(sim_maps.sum())), nest=True)
 
                 multipage(os.path.join(output_path, temp + "_examples.pdf"))
                 plt.close("all")
@@ -219,8 +220,9 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
 
     if t_ps:
         #os.environ['PYTHONPATH'] = ("/home/flo/GCE_NN")
-        #ray.init(local_mode=True) #for debugging
-        ray.init(**ray_settings)
+        #ray.init(**ray_settings)
+        ray.init(local_mode=True) #for debugging
+
 
         if "num_cpus" in ray_settings.keys():
             print("Ray: running on", ray_settings["num_cpus"], "CPUs.")
@@ -232,25 +234,27 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
 
         # Define a function for the simulation of the point-source models
         @ray.remote
-        def create_simulated_map(skew_, loc_, scale_, flux_lims_, enforce_upper_flux_, t_, exp_, pdf_, name_,
-                                 skew_draw_E, mean_draw_E, var_draw_E,
-                                 inds_outside_roi_, size_approx_mean_=10000, flux_log_=False):
+        def create_simulated_map(skew_, loc_, scale_, flux_lims_, enforce_upper_flux_, t_, exp_, pdf_, name_, weights ,
+                                 inds_outside_roi_,size_approx_mean_=10000, flux_log_=False, ):
             from .ps_mc import run
             assert np.all(np.isfinite(flux_lims_)), "Flux limits must be finite!"
             max_total_flux = flux_lims_[1] if enforce_upper_flux_ else -np.infty
 
-            plot_psf = True
+
+
+
+
             # Draw the desired flux
             if flux_log_:
                 flux_desired = 10 ** np.random.uniform(*flux_lims_)
             else:
-                flux_desired = np.random.uniform(*flux_lims_)
+                flux_desired = np.random.uniform(*flux_lims_) #ASK spektrum davor?
             # Calculate the expected value of 10^X
             exp_value = (10 ** stats.skewnorm.rvs(skew_, loc=loc_, scale=scale_, size=int(size_approx_mean_))).mean()
             # Determine the expected number of sources
             n_sources_exp = flux_desired / exp_value
             # Draw the observed number of sources from a Poisson distribution
-            n_sources = np.random.poisson(n_sources_exp)
+            n_sources = np.random.poisson(n_sources_exp) #hier weight?
             # Initialise total flux
             tot_flux = np.infty
             # Draw fluxes until total flux is in valid range
@@ -264,12 +268,10 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
                 if tot_flux > max_total_flux:
                     n_sources = int(max(1, int(n_sources // 1.05)))
 
-            cdf = stats.skewnorm.cdf(np.log10(x), a=skew_draw_E, loc=mean_draw_E,
-                                     scale=np.sqrt(var_draw_E))
-            pdf_E_samp = CDFSampler(xvals=x, cdf=cdf)
+
 
             # Do MC run
-            map_, n_phot_, flux_arr_out = run(np.asarray(flux_arr_), t_, exp_, pdf_, pdf_E_samp, Ebins, name_, save=False,
+            map_, n_phot_, flux_arr_out = run(np.asarray(flux_arr_), t_, exp_, pdf_, Ebins,weights,name_ ,save=False,
                                               getnopsf=False,  # True versuchen
                                               getcts=True, upscale_nside=16384, verbose=False, is_nest=True,
                                               inds_outside_roi=inds_outside_roi_, clean_count_list=False)
@@ -283,18 +285,12 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
         for temp in t_ps:
             print("Starting with point-source model '{:}'".format(temp))
             t = temp_dict["T_flux"][temp]  # for point-sources: template after REMOVING the exposure correction is used
-            x = Ebins
-            # Add energy dependence
-            pdf_E = params.Edep[temp]
-            # E = np.linspace(float(Ebins[0]), float(Ebins[len(Ebins) - 1]), 1000000, endpoint=False)
-            # pdf_E_samp = PDFSampler(E,pdf_E(E))
-            # pdf_E_samp_id = ray.put(pdf_E_samp)
 
             # Apply slightly larger mask
-            t_masked = t * (1 - total_mask_neg_safety)
+            t_masked = t * (1 - total_mask_neg_safety)[:, np.newaxis]
 
             # Correct flux limit priors for larger mask (after simulating the counts, ROI mask will be applied)
-            flux_corr_fac = t_masked.sum() / (t * (1 - total_mask_neg)).sum()
+            flux_corr_fac = np.max(t_masked.sum(0) / ((t * (1 - total_mask_neg)[:, np.newaxis])).sum(0)) #Ask max is ok?
             flux_lims_corr = [None] * 2
             for i in range(2):
                 if prior_dict[temp]["flux_log"]:
@@ -307,7 +303,7 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
 
             # Template needs to be normalised to sum up to unity for the new implementation!
             # Might need to do this twice because of rounding errors
-            t_final = t_masked / t_masked.sum()
+            t_final = t_masked / t_masked.sum() #ASK normalisation?
             while t_final.sum() > 1.0:
                 t_final /= t_final.sum()
             if t_final.sum() != 1.0:
@@ -331,14 +327,27 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
                 var_draw = prior_dict[temp]["var_exp"] * np.random.chisquare(1, size=n_sim_per_chunk)
                 skew_draw = np.random.normal(loc=0, scale=prior_dict[temp]["skew_std"], size=n_sim_per_chunk)
 
-                mean_draw_E= np.random.uniform(*params.Edep[temp]["mean_exp"], size=n_sim_per_chunk)
+                # draw energy functions
+                mean_draw_E = np.random.uniform(*params.Edep[temp]["mean_exp"], size=n_sim_per_chunk)
                 var_draw_E = params.Edep[temp]["var_exp"] * np.random.chisquare(1, size=n_sim_per_chunk)
                 skew_draw_E = np.random.normal(loc=0, scale=params.Edep[temp]["skew_std"], size=n_sim_per_chunk)
 
-                # cdf = stats.skewnorm.cdf(np.log10(x), a=skew_draw_E[current_map], loc=mean_draw_E[current_map],
-                #                          scale=np.sqrt(var_draw_E[current_map]))
-                # Energy_Sampler = CDFSampler(xvals=x, cdf=cdf)
-                # pdf_E_samp_id = ray.put(Energy_Sampler)
+                c = np.zeros(shape=(n_sim_per_chunk, len(Ebins) - 1))  # weight for normalisation
+                x = Ebins
+                sample_size = 1000000
+
+                for current_map in range(0, n_sim_per_chunk):
+                    cdf = stats.skewnorm.cdf(np.log10(x), a=skew_draw_E[current_map], loc=mean_draw_E[current_map],
+                                             scale=np.sqrt(var_draw_E[current_map]))
+                    Energy_Sampler = CDFSampler(xvals=x, cdf=cdf)
+                    E_draw = Energy_Sampler(sample_size)  # PFUSCH auf logarithm aufpassen
+                    Eind = np.digitize(E_draw, Ebins, right=True)
+                    num, counts = np.unique(Eind, return_counts=True)
+
+                    # to avoid non sampling of certain energy bins and false positioning:
+                    helper = np.zeros(len(Ebins) - 1)
+                    helper[num - 1] = counts
+                    c[current_map, :] = helper / sample_size
 
                 # This code is for debugging without ray
                 # sim_maps, n_phot, flux_arr = create_simulated_map(skew_draw[0], mean_draw[0], np.sqrt(var_draw[0]),
@@ -351,10 +360,9 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
                 sim_maps, n_phot, flux_arr = map(list, zip(*ray.get(
                     [create_simulated_map.remote(skew_draw[i_PS], mean_draw[i_PS], np.sqrt(var_draw[i_PS]),
                                                  flux_lims_corr, prior_dict[temp]["enforce_upper_flux"],
-                                                 t_final_id, exp_id, pdf_id, "map_" + temp, skew_draw_E[i_PS], mean_draw_E[i_PS],
-                                                 np.sqrt(var_draw_E[i_PS]),
+                                                 t_final_id, exp_id, pdf_id, "map_" + temp, c[i_PS][:],
                                                  flux_log_=prior_dict[temp]["flux_log"],
-                                                 inds_outside_roi_=inds_ps_outside_roi_id, )
+                                                 inds_outside_roi_=inds_ps_outside_roi_id)
                      for i_PS in range(n_sim_per_chunk)])))
                 sim_maps = np.asarray(sim_maps)
 

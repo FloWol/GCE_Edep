@@ -52,7 +52,7 @@ def random_u_grade_ang(m_inds, nside_in=0, nside_out=16384, is_nest=False):
     return th_out, ph_out
 
 
-def run(flux_arr, temp, exp, pdf_psf_sampler, pdf_E_samp, Ebins,name="map", save=False, getnopsf=False, getcts=False, upscale_nside=16384,
+def run(flux_arr, temp, exp, pdf_psf_sampler, Ebins,weights,name="map" ,save=False, getnopsf=False, getcts=False, upscale_nside=16384,
         verbose=False, clean_count_list=False, inds_outside_roi=None, is_nest=False, Edep_psf=True):
     """
     Runs point source Monte Carlo by reading in template, source count distribution parameters, exposure
@@ -82,7 +82,7 @@ def run(flux_arr, temp, exp, pdf_psf_sampler, pdf_E_samp, Ebins,name="map", save
     """
 
     # Generate simulated counts map
-    map_arr, map_arr_no_psf, cts_arr, flux_arr_out = make_map(flux_arr, temp, exp, pdf_psf_sampler, pdf_E_samp, Ebins,upscale_nside,
+    map_arr, map_arr_no_psf, cts_arr, flux_arr_out = make_map(flux_arr, temp, exp, pdf_psf_sampler, Ebins,weights,upscale_nside,
                                                               verbose, clean_count_list, inds_outside_roi, is_nest, Edep_psf)
     # Save the file as an .npy file
     if save:
@@ -110,7 +110,7 @@ def run(flux_arr, temp, exp, pdf_psf_sampler, pdf_E_samp, Ebins,name="map", save
             return map_arr_return
 
 
-def make_map(flux_arr, temp, exp, pdf_psf_sampler, pdf_E_samp, Ebins, upscale_nside=16384, verbose=False, clean_count_list=True,
+def make_map(flux_arr, temp, exp, pdf_psf_sampler, Ebins, weights, upscale_nside=16384, verbose=False, clean_count_list=True,
              inds_outside_roi=None, is_nest=False, Edep_psf=True):
     """
     Given an array of fluxes for each source, template & exposure map, and user defined PSF, simulates and returns
@@ -169,9 +169,17 @@ def make_map(flux_arr, temp, exp, pdf_psf_sampler, pdf_E_samp, Ebins, upscale_ns
     assert (np.abs(np.sum(temp) - 1) < 1e-5), "Template is not normalised!"
 
     # Draw pixel positions of the PSs and get an array with the (possibly multiple) indices
-    inds_ps_bool = stats.multinomial.rvs(p=temp, n=n)  # boolean array: inds_PS_bool.sum() == n
+    ps_per_bin = n/weights
+    inds_ps_bin =[]
+
+    temp_exp_corr = temp
+
+    sum_temp=temp.mean(1) #sum template over ebins
+    #for bin in range(0, len(Ebins)-1):
+    inds_ps_bool = stats.multinomial.rvs(p=sum_temp, n=n)  # boolean array: inds_PS_bool.sum() == n
     inds_ps = np.repeat(np.arange(npix), inds_ps_bool)  # array with indices: len(inds_PS) == n
 
+    #inds_ps_bin.append(inds_ps)
     # If no PSs: return at this point
     if len(inds_ps) == 0:
         return map_arr, map_arr_no_psf, [], []
@@ -190,8 +198,9 @@ def make_map(flux_arr, temp, exp, pdf_psf_sampler, pdf_E_samp, Ebins, upscale_ns
 
     # Find expected number of source photons and then do a Poisson draw.
     # Weight the total flux by the expected flux in that bin
-    num_phot = np.random.poisson(flux_arr * exp[pix_ps])
-
+    num_phot = np.random.poisson((flux_arr *(weights * exp[pix_ps][:]).T).T) #ask
+    #TEST check photon nr
+    #
     # if actual ROI is subset: set flux array of the PSs in the ROI, as well as num_phot
     # NOTE: inds_outside_roi should be a SET, gives great speed-up for member search!
     if inds_outside_roi is not None:
@@ -204,100 +213,93 @@ def make_map(flux_arr, temp, exp, pdf_psf_sampler, pdf_E_samp, Ebins, upscale_ns
             num_phot_in_roi = num_phot
 
     # Get array containing the pixel of each count before applying the PSF
-    pix_counts = np.repeat(pix_ps, num_phot)
+    for ebin_ind in range(0,len(Ebins)-1):
 
-
-    ##################################################################
-    # Do an Energy sampling for every pixel in pixel_counts right here
-    E = pdf_E_samp(pix_counts.size)
-    Eind = np.digitize(E, Ebins, right=True)
-
-
-
-
+        pix_counts = np.repeat(pix_ps, num_phot[:,ebin_ind])
     # How to deal with PSF?
 
-    # if no PSF:
-    if pdf_psf_sampler is None:
-        posit = pix_counts
-        num_phot_cleaned = num_phot
+        # if no PSF:
+        if pdf_psf_sampler is None:
+            posit = pix_counts
+            num_phot_cleaned = num_phot
 
-    # PSF correction:
-    else:
-        # Create a rotation matrix for each source.
-        # Shift phi coord pi/2 to correspond to center of HEALPix map during rotation.
-        phm = ph + np.pi / 2.
-
-        # Each source is initially treated as being located at theta=0, phi=0 as
-        # the drawn PSF distances simply correspond to photon theta position.
-        # A random phi value [0, 2pi] is then drawn. Each photon is then rotated
-        # about the x axis an angle corresponding to the true theta position of
-        # the source, followed by a rotation about the z axis by the true phi
-        # position plus an additional pi/2 radians.
-        a0 = np.zeros(n)
-        a1 = np.ones(n)
-        rotx = np.array([[a1, a0, a0], [a0, np.cos(th), -np.sin(th)], [a0, np.sin(th), np.cos(th)]])
-        rotz = np.array([[np.cos(phm), -np.sin(phm), a0], [np.sin(phm), np.cos(phm), a0], [a0, a0, a1]])
-
-        # Sample distances from PSF for each source photon.
-        n_counts_tot = num_phot.sum() # num_phot.sum() == pix_counts.size() conversion from count space to sky map pixels
-        if Edep_psf==True:
-            dist_flat = pdf_psf_sampler(Eind)  # list of distances for flattened counts, len: n_counts_tot
+        # PSF correction:
         else:
-            dist_flat = pdf_psf_sampler(n_counts_tot) #or PDFSampler
-        assert len(dist_flat) == n_counts_tot
+            # Create a rotation matrix for each source.
+            # Shift phi coord pi/2 to correspond to center of HEALPix map during rotation.
+            phm = ph + np.pi / 2.
 
-        # Reshape: 3 x 3 x N  ->  N x 3 x 3, then tile: one matrix for each count -> num_phot x 3 x 3
-        rotx_tiled = np.repeat(np.transpose(rotx, [2, 0, 1]), num_phot, axis=0)
-        rotz_tiled = np.repeat(np.transpose(rotz, [2, 0, 1]), num_phot, axis=0)
+            # Each source is initially treated as being located at theta=0, phi=0 as
+            # the drawn PSF distances simply correspond to photon theta position.
+            # A random phi value [0, 2pi] is then drawn. Each photon is then rotated
+            # about the x axis an angle corresponding to the true theta position of
+            # the source, followed by a rotation about the z axis by the true phi
+            # position plus an additional pi/2 radians.
+            a0 = np.zeros(n)
+            a1 = np.ones(n)
+            rotx = np.array([[a1, a0, a0], [a0, np.cos(th), -np.sin(th)], [a0, np.sin(th), np.cos(th)]])
+            rotz = np.array([[np.cos(phm), -np.sin(phm), a0], [np.sin(phm), np.cos(phm), a0], [a0, a0, a1]])
 
-        # Draw random phi positions for all the counts from [0, 2pi]
-        rand_phi = 2 * np.pi * np.random.uniform(0.0, 1.0, n_counts_tot)
-
-        # Convert the theta and phi to x,y,z coords.
-        x = np.array(hp.ang2vec(dist_flat, rand_phi))
-
-        # Rotate coords over the x axis (first: make X a matrix for each count)
-        xp = rotx_tiled @ np.expand_dims(x, -1)
-
-        # Rotate again, over the z axis (then: remove the additional dimension to get a 3d-vector for each count)
-        xp = np.squeeze(rotz_tiled @ xp, -1)
-
-        # Determine pixel location from x,y,z values.
-        posit = hp.vec2pix(nside, xp[:, 0], xp[:, 1], xp[:, 2], nest=is_nest)
-
-        # if desired: clean num_phot by removing the counts that leaked into pixels where temp == 0
-        if clean_count_list:
-            # Initialise the cleaned list
-            num_phot_cleaned = num_phot.copy()
-            # Get the global indices of counts that have leaked out
-            counts_leaked_outside_roi = np.argwhere(temp[posit] == 0).flatten()
-            if len(counts_leaked_outside_roi) > 0:
-                # Reverse the "repeat" (except where num_count == 0, but these PSs are irrelevant)
-                reverse_repeat = np.cumsum(num_phot) - 1
-                # Find PSs from which counts have leaked outside of the ROI (PSs may be contained multiple times)
-                leaked_ps = np.asarray([np.argmax(ind_rep <= reverse_repeat)
-                                        for ind_rep in counts_leaked_outside_roi]).flatten()
-                # Check that the PS indices refer to the same pixels as the global count indices
-                assert np.all(pix_counts[counts_leaked_outside_roi] == pix_ps[leaked_ps]), \
-                    "Count removal went wrong! Aborting!"
-                # Remove the leaked counts
-                np.add.at(num_phot_cleaned, leaked_ps, int(-1))
-                assert np.min(num_phot_cleaned) >= 0, "Negative counts encountered! Aborting!"
-            # Return input flux array
-            flux_arr_return = flux_arr
-        else:
-            if inds_outside_roi is not None:
-                num_phot_cleaned = num_phot_in_roi
-                flux_arr_return = flux_arr_in_roi
+            # Sample distances from PSF for each source photon.
+            n_counts_tot = num_phot.sum() # num_phot.sum() == pix_counts.size() conversion from count space to sky map pixels
+            bin_counts_tot=num_phot[:, ebin_ind].sum()
+            if Edep_psf==True:
+                dist_flat = pdf_psf_sampler(np.full(shape=(len(pix_counts)), fill_value=ebin_ind))  # list of distances for flattened counts, len: n_counts_tot
             else:
-                num_phot_cleaned = num_phot
+                dist_flat = pdf_psf_sampler(n_counts_tot) #or PDFSampler
+            assert len(dist_flat) == bin_counts_tot
+
+            # Reshape: 3 x 3 x N  ->  N x 3 x 3, then tile: one matrix for each count -> num_phot x 3 x 3
+            rotx_tiled = np.repeat(np.transpose(rotx, [2, 0, 1]), num_phot[:,ebin_ind], axis=0)
+            rotz_tiled = np.repeat(np.transpose(rotz, [2, 0, 1]), num_phot[:,ebin_ind], axis=0)
+
+            # Draw random phi positions for all the counts from [0, 2pi]
+            rand_phi = 2 * np.pi * np.random.uniform(0.0, 1.0, bin_counts_tot)
+
+            # Convert the theta and phi to x,y,z coords.
+            x = np.array(hp.ang2vec(dist_flat, rand_phi))
+
+            # Rotate coords over the x axis (first: make X a matrix for each count)
+            xp = rotx_tiled @ np.expand_dims(x, -1)
+
+            # Rotate again, over the z axis (then: remove the additional dimension to get a 3d-vector for each count)
+            xp = np.squeeze(rotz_tiled @ xp, -1)
+
+            # Determine pixel location from x,y,z values.
+            posit = hp.vec2pix(nside, xp[:, 0], xp[:, 1], xp[:, 2], nest=is_nest)
+
+            # if desired: clean num_phot by removing the counts that leaked into pixels where temp == 0
+            if clean_count_list:
+                # Initialise the cleaned list
+                num_phot_cleaned = num_phot.copy()
+                # Get the global indices of counts that have leaked out
+                counts_leaked_outside_roi = np.argwhere(temp[posit] == 0).flatten()
+                if len(counts_leaked_outside_roi) > 0:
+                    # Reverse the "repeat" (except where num_count == 0, but these PSs are irrelevant)
+                    reverse_repeat = np.cumsum(num_phot) - 1
+                    # Find PSs from which counts have leaked outside of the ROI (PSs may be contained multiple times)
+                    leaked_ps = np.asarray([np.argmax(ind_rep <= reverse_repeat)
+                                            for ind_rep in counts_leaked_outside_roi]).flatten()
+                    # Check that the PS indices refer to the same pixels as the global count indices
+                    assert np.all(pix_counts[counts_leaked_outside_roi] == pix_ps[leaked_ps]), \
+                        "Count removal went wrong! Aborting!"
+                    # Remove the leaked counts
+                    np.add.at(num_phot_cleaned, leaked_ps, int(-1))
+                    assert np.min(num_phot_cleaned) >= 0, "Negative counts encountered! Aborting!"
+                # Return input flux array
                 flux_arr_return = flux_arr
+            else:
+                if inds_outside_roi is not None:
+                    num_phot_cleaned = num_phot_in_roi
+                    flux_arr_return = flux_arr_in_roi
+                else:
+                    num_phot_cleaned = num_phot
+                    flux_arr_return = flux_arr
 
-    # Add all the counts: note: use "at" such that multiple counts in a pixel are added
+        # Add all the counts: note: use "at" such that multiple counts in a pixel are added
 
-    np.add.at(map_arr, (posit, Eind-1), int(1))  # pixels AFTER PSF
-    np.add.at(map_arr_no_psf, (pix_counts, Eind-1), int(1))  # pixels BEFORE PSF
+        np.add.at(map_arr, (posit, ebin_ind), int(1))  # pixels AFTER PSF
+        np.add.at(map_arr_no_psf, (pix_counts, ebin_ind), int(1))  # pixels BEFORE PSF
 
     # Return map, map before PSF, and num_phot_cleaned
     return map_arr, map_arr_no_psf, num_phot_cleaned, flux_arr_return

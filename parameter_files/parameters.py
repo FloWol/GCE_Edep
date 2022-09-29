@@ -123,12 +123,12 @@ def get_params(int_flag=0):
     # Modeling settings
     ###################################
     p_mod = DotDict()
-    p_mod["models_P"] = ["dif_O_pibs", "dif_O_ic", "iso", "bub"]  # list of Poissonian templates
+    p_mod["models_P"] =[] #["dif_O_pibs", "dif_O_ic", "iso", "bub"]  # list of Poissonian templates
     #p_mod["models_P"] = ["bub"]#["dif_O_pibs", "bub"]  # list of Poissonian templates
     p_mod["models_PS"] = ["gce_12_PS", "thin_disk_PS"]  # list of PS templates
     #p_mod["models_PS"] = ["gce_12_PS", "iso_PS"]  # list of PS templates
     # Note: point-source models use the same names as the Poissonian models, but with a trailing "_PS"!
-    p_mod["model_names_P"] = [r"diffuse $\pi^0$ + BS", "diffuse IC", "isotropic", r"$\it{Fermi}$ bubbles"]  # names: P
+    p_mod["model_names_P"] = []#[r"diffuse $\pi^0$ + BS", "diffuse IC", "isotropic", r"$\it{Fermi}$ bubbles"]  # names: P
     #p_mod["model_names_P"] = [r"$\it{Fermi}$ bubbles"]#[r"diffuse $\pi^0$ + BS", r"$\it{Fermi}$ bubbles"]
     #p_mod["model_names_P"] = []#[r"$\it{Fermi}$ bubbles"]  # names: P
     p_mod["model_names_PS"] = ["GCE", "thin disk PS"]
@@ -141,8 +141,8 @@ def get_params(int_flag=0):
     p_tt["data_name"] = "Example"  # name of data folder for the template maps
     p_tt["filename_base"] = "Maps"  # name basis of template map files
     p_tt["poisson_A_is_log"] = False  # is log10(A) rather than A specified for the Poissonian templates in prior_dict?
-    p_tt["n_chunk"] = int(20)  # number of chunks to compute per job
-    p_tt["n_sim_per_chunk"] = int(10)  # number of simulations per chunk and per model (one output file per chunk)
+    p_tt["n_chunk"] = int(10)  # number of chunks to compute per job
+    p_tt["n_sim_per_chunk"] = int(20)  # number of simulations per chunk and per model (one output file per chunk)
     # Note: the total number of maps for each template will be "n_chunk" * "n_sim_per_chunk" (* # jobs)
     p_tt["add_two_temps_PS"] = [] #["iso_PS"]  # list of PS templates for which TWICE the number of maps will be generated.
     # Later, these maps can be added pairwise, modeling two distinct populations.

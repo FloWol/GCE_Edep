@@ -41,19 +41,28 @@ class PDFSampler:
         # not be 1 as the pdf does not have to be normalised
         #print("Psamples shape: " + str(samples.shape) + "samples: " + str(samples[:10]))
 
+        assert min(Eind) == max(Eind), "passed energy values are not of one number only"
+        assert Eind.size != 0, 'empty array'
 
+        # distances=np.zeros(shape=Eind.shape)
+        #
+        # #old version not needed for energy dependent templates
+        # for index in range(0, self.n_Ebins-1):
+        #     Ebin_indices = np.argwhere(Eind==index).flatten() #save all indices of photons within the same energy bin
+        #
+        #     unidraw = np.random.uniform(high=self.cdf_list[index][-1], size=Ebin_indices.size) #self.cdf_list[index][-1] = highest value of cdf of given Ebin
+        #     cdfdraw = np.searchsorted(self.cdf_list[index], unidraw) #gibt indizes von cdf aus wo unidraw werte sind
+        #     cdfdraw = self.sortxvals_list[index][cdfdraw] #sucht index xwerte von den gezogenen cdf values
+        #     distances[Ebin_indices] = self.xvals[cdfdraw] #fügt allen photonen eines energie bins ihre x werte zur cdf
+        #     #xvals_list.append(self.xvals[cdfdraw])
 
-        distances=np.zeros(shape=Eind.shape)
+        index=Eind[0]
 
-        for index in range(0, self.n_Ebins-1):
-            Ebin_indices = np.argwhere(Eind==index).flatten() #save all indices of photons within the same energy bin
-
-            unidraw = np.random.uniform(high=self.cdf_list[index][-1], size=Ebin_indices.size) #self.cdf_list[index][-1] = highest value of cdf of given Ebin
-            cdfdraw = np.searchsorted(self.cdf_list[index], unidraw) #gibt indizes von cdf aus wo unidraw werte sind
-            cdfdraw = self.sortxvals_list[index][cdfdraw] #sucht index xwerte von den gezogenen cdf values
-            distances[Ebin_indices] = self.xvals[cdfdraw] #fügt allen photonen eines energie bins ihre x werte zur cdf
-            #xvals_list.append(self.xvals[cdfdraw])
-
+        unidraw = np.random.uniform(high=self.cdf_list[index][-1], size=Eind.size)
+        cdfdraw = np.searchsorted(self.cdf_list[index], unidraw)  # gibt indizes von cdf aus wo unidraw werte sind
+        cdfdraw = self.sortxvals_list[index][cdfdraw]  # sucht index xwerte von den gezogenen cdf values
+        distances= self.xvals[cdfdraw]  # fügt allen photonen eines energie bins ihre x werte zur cdf
+        # xvals_list.append(self.xvals[cdfdraw])
         return distances
 
         #noch genauer versuchen den Sampler zu verstehen
