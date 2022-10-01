@@ -417,8 +417,8 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
                 # Plot some maps and save
                 if chunk == 0 and int(job_id) == 0 and save_example_plot:
                     plt.ioff()
-                    hp.mollview(t * (1 - total_mask_neg), title="Template (not exposure-corrected)", nest=True)
-                    hp.mollview(exp, title="Exposure (nside = " + str(nside) + ")", nest=True)
+                    hp.mollview(t[:,0] * (1 - total_mask_neg), title="Template (not exposure-corrected)", nest=True)
+                    hp.mollview(exp[:,0], title="Exposure (nside = " + str(nside) + ")", nest=True)
                     hp.mollview(total_mask_neg, title="Mask (" + str(mask_type) + ")", nest=True)
                     hp.mollview(total_mask_neg_safety, title="Extended mask (allowing leakage into ROI)", nest=True)
                     for i in range(n_example_plots):

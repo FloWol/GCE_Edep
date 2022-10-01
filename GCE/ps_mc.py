@@ -169,12 +169,8 @@ def make_map(flux_arr, temp, exp, pdf_psf_sampler, Ebins, weights, upscale_nside
     assert (np.abs(np.sum(temp) - 1) < 1e-5), "Template is not normalised!"
 
     # Draw pixel positions of the PSs and get an array with the (possibly multiple) indices
-    ps_per_bin = n/weights
-    inds_ps_bin =[]
 
-    temp_exp_corr = temp
-
-    sum_temp=temp.mean(1) #sum template over ebins
+    sum_temp = temp.mean(1) #sum template over ebins
     #for bin in range(0, len(Ebins)-1):
     inds_ps_bool = stats.multinomial.rvs(p=sum_temp, n=n)  # boolean array: inds_PS_bool.sum() == n
     inds_ps = np.repeat(np.arange(npix), inds_ps_bool)  # array with indices: len(inds_PS) == n
@@ -198,7 +194,7 @@ def make_map(flux_arr, temp, exp, pdf_psf_sampler, Ebins, weights, upscale_nside
 
     # Find expected number of source photons and then do a Poisson draw.
     # Weight the total flux by the expected flux in that bin
-    num_phot = np.random.poisson((flux_arr *(weights * exp[pix_ps][:]).T).T) #ask
+    num_phot = np.random.poisson(flux_arr[:,np.newaxis] *(weights * exp[pix_ps][:]))
     #TEST check photon nr
     #
     # if actual ROI is subset: set flux array of the PSs in the ROI, as well as num_phot
@@ -243,6 +239,10 @@ def make_map(flux_arr, temp, exp, pdf_psf_sampler, Ebins, weights, upscale_nside
             # Sample distances from PSF for each source photon.
             n_counts_tot = num_phot.sum() # num_phot.sum() == pix_counts.size() conversion from count space to sky map pixels
             bin_counts_tot=num_phot[:, ebin_ind].sum()
+
+            if (len(pix_counts) == 0):
+                continue #in case no photon is sampled in this bin for this point source, skip to the next bin
+
             if Edep_psf==True:
                 dist_flat = pdf_psf_sampler(np.full(shape=(len(pix_counts)), fill_value=ebin_ind))  # list of distances for flattened counts, len: n_counts_tot
             else:

@@ -42,7 +42,9 @@ class PDFSampler:
         #print("Psamples shape: " + str(samples.shape) + "samples: " + str(samples[:10]))
 
         assert min(Eind) == max(Eind), "passed energy values are not of one number only"
-        assert Eind.size != 0, 'empty array'
+        assert Eind.size != 0
+
+
 
         # distances=np.zeros(shape=Eind.shape)
         #
