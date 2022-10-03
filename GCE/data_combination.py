@@ -320,7 +320,7 @@ def combine_template_maps(save_filenames, params, job_id=None, train_range=None,
                     # Add to combined map
                     combined_map += temp_map
                     # Calculate flux
-                    flux = temp_map / np.expand_dims(exp_indices_roi, [0, 2])
+                    flux = temp_map / np.expand_dims(exp_indices_roi, [0])
                     # Total flux of template: sum over pixels
                     total_flux_dict[temp] += flux.sum(1)
                     #print(total_flux_dict["bub"].shape) (50, 7)
@@ -328,7 +328,7 @@ def combine_template_maps(save_filenames, params, job_id=None, train_range=None,
             # Calculate flux fractions
             total_flux = np.asarray([v for k, v in total_flux_dict.items()]).sum(0)
             for temp in t_p + t_ps:
-                flux_fraction_dict[temp] = total_flux_dict[temp] / total_flux
+                flux_fraction_dict[temp] = total_flux_dict[temp] / total_flux #ask if total flux or per ebin
                 for vec_ind, vec in enumerate(flux_fraction_dict[temp]):
                     for index, bin_entry in enumerate(vec):
                         if math.isnan(bin_entry):

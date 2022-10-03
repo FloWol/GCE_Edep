@@ -351,11 +351,19 @@ class Analysis:
                                          outer=outer_rad, nside=nside)
 
         if self.p.data["mask_type"] == "3FGL":
-            total_mask_neg = (1 - (1 - total_mask_neg)
-                              * (1 - get_template(fermi_folder, "3FGL_mask"))).astype(bool)
+            if model_O == True:
+                total_mask_neg = (1 - (1 - total_mask_neg)
+                                  * (1 - get_template(fermi_folder, "3FGL_mask"))).astype(bool)[10:20]
+            else:
+                total_mask_neg = (1 - (1 - total_mask_neg)
+                                  * (1 - get_template(fermi_folder, "3FGL_mask"))).astype(bool)
         elif self.p.data["mask_type"] == "4FGL":
-            total_mask_neg = (1 - (1 - total_mask_neg)
-                              * (1 - get_template(fermi_folder, "4FGL_mask"))).astype(bool)
+            if model_O == True:
+                total_mask_neg = (1 - (1 - total_mask_neg)
+                                  * (1 - get_template(fermi_folder, "4FGL_mask"))).astype(bool)[10:20]
+            else:
+                total_mask_neg = (1 - (1 - total_mask_neg)
+                                  * (1 - get_template(fermi_folder, "4FGL_mask"))).astype(bool)
         elif self.p.data["mask_type"] is not None:
             warnings.warn("Warning! The mask type self.p.data['mask_type'] = '{:}' is not recognized and will be "
                           "ignored. Choose '3FGL', '4FGL', or None.".format(self.p.data["mask_type"]))

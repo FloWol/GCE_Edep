@@ -278,9 +278,9 @@ def get_template(fermi_folder, temp, smooth=True):  #, model_O=False)
             try:
                 t = np.load(os.path.join(fermi_folder, 'fermidata_pscmask.npy'))
             except FileNotFoundError:
-                t = np.load(os.path.join(fermi_folder, 'fermidata_pscmask_3fgl.npy'))
+                t = np.load(os.path.join(fermi_folder, 'template_psc_3fgl.npy'))
         elif temp == "4FGL_mask":
-            t = np.load(os.path.join(fermi_folder, 'fermidata_pscmask_4fgl.npy'))
+            t = np.load(os.path.join(fermi_folder, 'template_psc_4fgl.npy'))
         elif temp == "exp":
             t = np.load(os.path.join(fermi_folder, 'fermidata_exposure.npy'))
         elif temp == "counts":
