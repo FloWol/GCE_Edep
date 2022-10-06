@@ -123,15 +123,15 @@ def get_params(int_flag=0):
     # Modeling settings
     ###################################
     p_mod = DotDict()
-    p_mod["models_P"] =[] #["dif_O_pibs", "dif_O_ic", "iso", "bub"]  # list of Poissonian templates
+    p_mod["models_P"] =[]#["dif_O_pibs", "dif_O_ic", "iso", "bub"]  # list of Poissonian templates
     #p_mod["models_P"] = ["bub"]#["dif_O_pibs", "bub"]  # list of Poissonian templates
-    p_mod["models_PS"] = ["gce_12_PS", "thin_disk_PS"]  # list of PS templates
+    p_mod["models_PS"] = ["gce_12_PS","thin_disk_PS"]  # list of PS templates
     #p_mod["models_PS"] = ["gce_12_PS", "iso_PS"]  # list of PS templates
     # Note: point-source models use the same names as the Poissonian models, but with a trailing "_PS"!
     p_mod["model_names_P"] = []#[r"diffuse $\pi^0$ + BS", "diffuse IC", "isotropic", r"$\it{Fermi}$ bubbles"]  # names: P
-    #p_mod["model_names_P"] = [r"$\it{Fermi}$ bubbles"]#[r"diffuse $\pi^0$ + BS", r"$\it{Fermi}$ bubbles"]
+    #p_mod["model_names_P"] = [r"diffuse $\pi^0$ + BS", r"$\it{Fermi}$ bubbles"]
     #p_mod["model_names_P"] = []#[r"$\it{Fermi}$ bubbles"]  # names: P
-    p_mod["model_names_PS"] = ["GCE", "thin disk PS"]
+    p_mod["model_names_PS"] = ["GCE","thin disk PS"]#["GCE", "thin disk PS"]
     #p_mod["model_names_PS"] = ["GCE", "isotropic PS"]  # names: PS
     p["mod"] = p_mod
 

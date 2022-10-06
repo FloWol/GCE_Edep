@@ -107,10 +107,10 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
 
         # Get pixels that are not masked
         indices_roi = temp_dict["indices_roi"]
-
+        indices_roi_bins =  temp_dict["indices_roi_all_bins"]
         # Mask template and compress
-        t_masked = t * (1 - total_mask_neg)[:,np.newaxis]
-        t_masked_compressed = t_masked[indices_roi,:]
+        t_masked = t * (1 - total_mask_neg)
+        t_masked_compressed = t_masked[indices_roi_bins,:]
 
         # Make a subfolder
         temp_folder = os.path.join(output_path, temp)
@@ -207,17 +207,16 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
                 plt.ioff()
                 hp.mollview(t_masked.sum(1), title="Template (exposure-corrected)", nest=True)
                 hp.mollview(exp.sum(1), title="Exposure (nside = " + str(nside) + ")", nest=True)
-                hp.mollview(total_mask_neg, title="Mask (" + str(mask_type) + ")", nest=True)
+                hp.mollview(total_mask_neg[:,0], title="Mask (" + str(mask_type) + ")", nest=True)
                 for i in range(n_example_plots):
                     map_to_plot=sim_maps.sum(2)
-                    hp.mollview(masked_to_full(map_to_plot[i, :], indices_roi, nside=nside),
+                    hp.mollview(masked_to_full(map_to_plot[i, :], indices_roi_bins, nside=nside), # indices_roi_bins statt indices_roi
                                 title=int(np.round(sim_maps.sum())), nest=True)
 
                 multipage(os.path.join(output_path, temp + "_examples.pdf"))
                 plt.close("all")
 
     # Initialise Ray
-
     if t_ps:
         #os.environ['PYTHONPATH'] = ("/home/flo/GCE_NN")
         ray.init(**ray_settings)
@@ -290,7 +289,7 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
             t_masked = t * (1 - total_mask_neg_safety)[:, np.newaxis]
 
             # Correct flux limit priors for larger mask (after simulating the counts, ROI mask will be applied)
-            flux_corr_fac = np.max(t_masked.sum(0) / ((t * (1 - total_mask_neg)[:, np.newaxis])).sum(0)) #Ask max is ok?
+            flux_corr_fac = np.mean(t_masked.sum(0) / ((t * (1 - total_mask_neg))).sum(0))
             flux_lims_corr = [None] * 2
             for i in range(2):
                 if prior_dict[temp]["flux_log"]:
@@ -299,11 +298,11 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
                     flux_lims_corr[i] = prior_dict[temp]["flux_lims"][i] * flux_corr_fac
 
             # Get indices where PSs are sampled although they lie outside ROI
-            inds_ps_outside_roi = set(np.setdiff1d(temp_dict["indices_safety"], temp_dict["indices_roi"]))
+            inds_ps_outside_roi = set(np.setdiff1d(temp_dict["indices_safety"], temp_dict["indices_roi_all_bins"]))
 
             # Template needs to be normalised to sum up to unity for the new implementation!
             # Might need to do this twice because of rounding errors
-            t_final = t_masked / t_masked.sum() #ASK normalisation?
+            t_final = t_masked / t_masked.sum()
             while t_final.sum() > 1.0:
                 t_final /= t_final.sum()
             if t_final.sum() != 1.0:
@@ -367,7 +366,7 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
                 sim_maps = np.asarray(sim_maps)
 
                 # Apply ROI mask again and cut off counts outside ROI
-                sim_maps = np.asarray(sim_maps) * np.expand_dims((1 - total_mask_neg), [0, -1])
+                sim_maps = np.asarray(sim_maps) * np.expand_dims((1 - total_mask_neg), [0])
 
                 # The following assert is for the scenario where there is NO leakage INTO the ROI, and counts leaking
                 # OUT OF the ROI are deleted from photon-count list n_phot
@@ -417,9 +416,9 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
                 # Plot some maps and save
                 if chunk == 0 and int(job_id) == 0 and save_example_plot:
                     plt.ioff()
-                    hp.mollview(t[:,0] * (1 - total_mask_neg), title="Template (not exposure-corrected)", nest=True)
+                    hp.mollview(t[:,0] * (1 - total_mask_neg[:,0]), title="Template (not exposure-corrected)", nest=True)
                     hp.mollview(exp[:,0], title="Exposure (nside = " + str(nside) + ")", nest=True)
-                    hp.mollview(total_mask_neg, title="Mask (" + str(mask_type) + ")", nest=True)
+                    hp.mollview(total_mask_neg[:,0], title="Mask (" + str(mask_type) + ")", nest=True)
                     hp.mollview(total_mask_neg_safety, title="Extended mask (allowing leakage into ROI)", nest=True)
                     for i in range(n_example_plots):
                         hp.mollview(sim_maps[i, :, 0], title=int(np.round(sim_maps[i, :, 0].sum())), nest=True)

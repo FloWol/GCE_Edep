@@ -381,26 +381,53 @@ class Analysis:
             total_mask_neg_safety = total_mask_neg.copy()
 
         # RING -> NEST
-        total_mask_neg = hp.reorder(total_mask_neg, r2n=True)
+        total_mask_neg = hp.reorder(total_mask_neg, r2n=True) #are shape [energy,pix]
         total_mask_neg_safety = hp.reorder(total_mask_neg_safety, r2n=True)
-        indices_roi = np.argwhere(~total_mask_neg).flatten()
+        indices_roi = np.argwhere(~total_mask_neg) #removed flatten since we want energy now, care shape [energy,pix]
         indices_safety = np.argwhere(~total_mask_neg_safety).flatten()
 
         # Store mask and corresponding indices
-        temp_dict["mask_ROI_full"] = total_mask_neg
+        temp_dict["mask_ROI_full"] = total_mask_neg.T
         temp_dict["mask_safety_full"] = total_mask_neg_safety
         temp_dict["indices_roi"] = indices_roi
         temp_dict["indices_safety"] = indices_safety
 
+        #get indices for which at least one pixel in an ebin is not masked
+
+
         # Get exposure map
         fermi_exp = hp.reorder(get_template(fermi_folder, "exp"), r2n=True)
+
+
+
+
+        #get indices for which at least one pixel in an ebin is not masked and account for model_O
         if model_O:
             fermi_exp= fermi_exp[10:20]
-            fermi_exp_compressed = fermi_exp[:,indices_roi]
-        else:
-            fermi_exp_compressed = fermi_exp[:, indices_roi]
 
-        fermi_mean_exp_roi = fermi_exp_compressed.mean(axis=1)
+            masked_indices = fermi_exp.copy()
+            masked_indices[total_mask_neg] = 0
+            masked_indices = np.nonzero(np.any(masked_indices != 0, axis=0))[0]
+
+            fermi_exp_compressed = fermi_exp[:,masked_indices]
+        else:
+            masked_indices = fermi_exp
+            masked_indices[total_mask_neg] = 0
+            masked_indices = np.nonzero(np.any(masked_indices != 0, axis=0))[0]
+
+        fermi_exp2 = fermi_exp.copy()
+        indices_masked_ebins=np.array([np.nonzero(row)[0] for row in fermi_exp2])
+        fermi_exp_compressed = fermi_exp[:, masked_indices]
+
+        temp_dict["indices_roi_all_bins"] = masked_indices
+
+        #since we have a different amount of pixels that are masked for every bin, we have to
+        #take care of them individually
+        fermi_mean_exp_roi = np.zeros(shape=fermi_exp.shape[0])
+        for ebin, indices in enumerate(indices_masked_ebins):
+            fermi_mean_exp_roi[ebin] = np.mean(fermi_exp[ebin, indices])
+
+        #fermi_mean_exp_roi = fermi_exp_compressed.mean(axis=1)
 
         if self.p.data["exposure"] == "Fermi":
             exp = fermi_exp.copy()
@@ -411,8 +438,14 @@ class Analysis:
         else:
             raise NotImplementedError
 
-        exp_compressed = exp[:,indices_roi]
-        mean_exp_roi = exp_compressed.mean(axis=1)
+        exp_compressed = exp[:,masked_indices]
+        mean_exp_roi = np.zeros(shape=exp_compressed.shape[0])
+        for ebin, indices in enumerate(indices_masked_ebins):
+            mean_exp_roi[ebin] = np.mean(exp[ebin, indices])
+
+        #mean_exp_roi = exp_compressed.mean(axis=1)
+
+
 
         # Store exposure for Fermi map (always needed because templates are stored exposure corrected!)
         temp_dict["fermi_exp"] = fermi_exp.T
@@ -424,7 +457,7 @@ class Analysis:
         # Store exposure for data considered here
         temp_dict["exp"] = exp.T
         temp_dict["exp_compressed"] = exp_compressed.T
-        temp_dict["mean_exp_roi"] = mean_exp_roi
+        temp_dict["mean_exp_roi"] = mean_exp_roi #make this constant
         temp_dict["rescale"] = (exp / mean_exp_roi[:,np.newaxis]).T
         temp_dict["rescale_compressed"] = (exp_compressed / mean_exp_roi[:,np.newaxis]).T
 
@@ -438,8 +471,8 @@ class Analysis:
 
         # Now, store the templates
         for temp in t_p + t_ps:
-            temp_p_name = temp[:-3] if "_PS" in temp else temp
-            t = hp.reorder(get_template(fermi_folder, temp_p_name), r2n=True)
+            #temp_p_name = temp[:-3] if "_PS" in temp else temp
+            t = hp.reorder(get_template(fermi_folder, temp), r2n=True)
             t = t.T
             if "_O" not in temp and model_O == True: #check if we use model O to choose correct energies
                 t=t[:,10:20]
@@ -453,7 +486,7 @@ class Analysis:
             else:
                 t_counts = t_flux = t / temp_dict["fermi_rescale"]
 
-            counts_to_flux_ratio_roi = t_counts[indices_roi,:].sum(0) / t_flux[indices_roi,:].sum(0) #t_counts[indices_roi].sum() / t_flux[indices_roi].sum()
+            counts_to_flux_ratio_roi = t_counts[masked_indices,:].sum(0) / t_flux[masked_indices,:].sum(0) #t_counts[indices_roi].sum() / t_flux[indices_roi].sum()
 
             temp_dict["T_counts"][temp] = t_counts
             temp_dict["T_flux"][temp] = t_flux
