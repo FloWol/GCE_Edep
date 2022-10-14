@@ -69,7 +69,7 @@ class PairGeneratorCNNPreGenerated(PairGenerator):
         self._data_dict = {}
         self._cond_must_be_imposed = False
 
-    def get_next_pair(self, verbose=1, extra_info=False):
+    def get_next_pair(self, verbose=3, extra_info=False):
         """
         :param verbose: verbosity level (0 - 3)
         :param extra_info: also return extra_info field?
@@ -148,8 +148,6 @@ class PairGeneratorCNNPreGenerated(PairGenerator):
                 # Check if conditions are satisfied (training data only)
                 ready_to_yield = True
                 #CLEANUP
-                #print(np.asarray(labels).shape)
-                #print(np.asarray(new_array).shape)
                 if self.train_val_test == 0 and (self._p.nn.cond["cond_on_training_data"] is not None
                                                  or self._p.nn.cond["cond_on_training_labels"] is not None):
                     impose_cond = self._cond_must_be_imposed \

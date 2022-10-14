@@ -229,11 +229,18 @@ def combine_template_maps(save_filenames, params, job_id=None, train_range=None,
                 settings_dict_comb["exp"] = exp
                 settings_dict_comb["rescale_compressed"] = rescale_compressed
                 settings_dict_comb["nside"] = nside
-                indices_roi_all = np.asarray([settings_dict[temp]["indices_roi"] for temp in t_p + t_ps])
-                indices_roi_unique = np.unique(indices_roi_all, axis=0)
-                if indices_roi_unique.shape[0] > 1:
+                # indices_roi_all = np.asarray([settings_dict[temp]["indices_roi"] for temp in t_p + t_ps])
+                # indices_roi_unique = np.unique(indices_roi_all, axis=0)
+                # if indices_roi_unique.shape[0] > 1:
+                #     raise ValueError("ROI indices for the different template maps are not identical!")
+                # settings_dict_comb["indices_roi"] = indices_roi_unique.flatten()
+                #do the same thing for the Ebin Indices:
+                indices_roi_ebin = np.asarray([settings_dict[temp]["indices_roi_all_bins"] for temp in t_p + t_ps])
+                indices_roi_ebin_unique = np.unique(indices_roi_ebin, axis=0)
+                if indices_roi_ebin_unique .shape[0] > 1:
                     raise ValueError("ROI indices for the different template maps are not identical!")
-                settings_dict_comb["indices_roi"] = indices_roi_unique.flatten()
+                settings_dict_comb["indices_roi_all_bins"] = indices_roi_ebin_unique.flatten()
+
                 format_all = np.asarray([settings_dict[temp]["format"] for temp in t_p + t_ps])
                 format_unique = np.unique(format_all)
                 if len(format_unique) > 1:
@@ -258,12 +265,18 @@ def combine_template_maps(save_filenames, params, job_id=None, train_range=None,
                         pickle.dump(settings_dict_comb, f)
                         print("Combined settings file written.")
 
-        # in any case: need to get exp_indices_roi
-        indices_roi_all = np.asarray([settings_dict[temp]["indices_roi"] for temp in t_p + t_ps])
-        indices_roi_unique = np.unique(indices_roi_all, axis=0)
-        if indices_roi_unique.shape[0] > 1:
+        # in any case: need to get exp_indices_roi (OLD VERSION)
+        # indices_roi_all = np.asarray([settings_dict[temp]["indices_roi"] for temp in t_p + t_ps])
+        # indices_roi_unique = np.unique(indices_roi_all, axis=0)
+        # if indices_roi_unique.shape[0] > 1:
+        #     raise ValueError("ROI pixels for the different template maps are not identical!")
+        # exp_indices_roi = exp[indices_roi_unique.flatten()]
+
+        indices_roi_ebin = np.asarray([settings_dict[temp]["indices_roi_all_bins"] for temp in t_p + t_ps])
+        indices_roi_ebin_unique = np.unique(indices_roi_ebin, axis=0)
+        if indices_roi_ebin_unique.shape[0] > 1:
             raise ValueError("ROI pixels for the different template maps are not identical!")
-        exp_indices_roi = exp[indices_roi_unique.flatten()]
+        exp_indices_roi = exp[indices_roi_ebin_unique.flatten()]
 
         # Print info
         if verbose:

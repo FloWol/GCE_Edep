@@ -45,6 +45,7 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
     do_fermi_psf = params.data["psf"]
     leakage_delta = params.data["leakage_delta"] if do_fermi_psf else 0
     Ebins = params.data["Ebins"]
+    indices_roi_bins = temp_dict["indices_roi_all_bins"]
 
     if "db" in params.keys():
         do_poisson_scatter_p = False if params.db["deactivate_poiss_scatter_for_P"] else True
@@ -107,7 +108,7 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
 
         # Get pixels that are not masked
         indices_roi = temp_dict["indices_roi"]
-        indices_roi_bins =  temp_dict["indices_roi_all_bins"]
+
         # Mask template and compress
         t_masked = t * (1 - total_mask_neg)
         t_masked_compressed = t_masked[indices_roi_bins,:]
@@ -183,6 +184,7 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
                 settings_out["exp"] = exp
                 settings_out["rescale_compressed"] = rescale_compressed
                 settings_out["indices_roi"] = indices_roi
+                settings_out["indices_roi_all_bins"] = indices_roi_bins
                 settings_out["format"] = "NEST"
                 settings_out["mask_type"] = mask_type
                 settings_out["outer_rad"] = outer_rad
@@ -218,7 +220,7 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
 
     # Initialise Ray
     if t_ps:
-        #os.environ['PYTHONPATH'] = ("/home/flo/GCE_NN")
+        #os.environ['PYTHONPATH'] = ("/home/florianwolf/Desktop/Python3.8/Python-3.8.10/GCE_env/GCE_NN/")
         ray.init(**ray_settings)
         #ray.init(local_mode=True) #for debugging
 
@@ -247,7 +249,7 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
             if flux_log_:
                 flux_desired = 10 ** np.random.uniform(*flux_lims_)
             else:
-                flux_desired = np.random.uniform(*flux_lims_) #ASK spektrum davor?
+                flux_desired = np.random.uniform(*flux_lims_)
             # Calculate the expected value of 10^X
             exp_value = (10 ** stats.skewnorm.rvs(skew_, loc=loc_, scale=scale_, size=int(size_approx_mean_))).mean()
             # Determine the expected number of sources
@@ -302,7 +304,9 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
 
             # Template needs to be normalised to sum up to unity for the new implementation!
             # Might need to do this twice because of rounding errors
+            t_masked = t_masked.mean(1)
             t_final = t_masked / t_masked.sum()
+
             while t_final.sum() > 1.0:
                 t_final /= t_final.sum()
             if t_final.sum() != 1.0:
@@ -389,6 +393,7 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
                     settings_out["rescale_compressed"] = rescale_compressed
                     settings_out["max_NP_sources"] = np.nan  # not set here
                     settings_out["indices_roi"] = np.argwhere(1 - total_mask_neg).flatten()
+                    settings_out["indices_roi_all_bins"] = indices_roi_bins
                     settings_out["format"] = "NEST"
                     settings_out["mask_type"] = mask_type
                     settings_out["outer_rad"] = outer_rad
@@ -400,7 +405,7 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
                         pickle.dump(settings_out, f)
 
                 # Save maps
-                data_out["data"] = (sim_maps[:, temp_dict["indices_roi"], :]).astype(dtype_data)
+                data_out["data"] = (sim_maps[:, temp_dict["indices_roi_all_bins"], :]).astype(dtype_data)
                 data_out["n_phot"] = n_phot
                 data_out["flux_arr"] = [np.asarray(f, dtype=dtype_flux_arr) for f in flux_arr]
                 data_out["info"] = dict()

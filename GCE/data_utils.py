@@ -575,7 +575,7 @@ def get_pixels_with_holes(mask, nsides):
     return pixels
 
 
-def build_index_dict(params):
+def build_index_dict(params, model_O=True):
     """
     Build a dictionary containing
     1. a list of the indices of the ROI pixels at each hierarchy level, from the selected nside downwards to 1
@@ -602,9 +602,22 @@ def build_index_dict(params):
 
     roi_extended = hp.reorder(make_mask_total(nside=1, mask_ring=True, inner=0,
                                               outer=outer_rad), r2n=True)
+
+    if model_O:
+        roi = roi[10:20]
+        masked_indices = ~np.any(~roi != 0, axis=0)
+
+
+    else:
+        masked_indices = ~np.any(~roi != 0, axis=0)
+
+
+
+
     roi_dict = dict()
-    roi_dict["indexes"] = get_pixels_with_holes(roi, nsides)
-    roi_dict["indexes_extended"] = get_pixels(roi_extended, nsides)
+    roi_dict["indexes"] = get_pixels_with_holes(masked_indices, nsides) #vorher statt masked_indices roi
+    roi_dict["indexes_extended"] = get_pixels(roi_extended, nsides) #hier 9 oder nur 1? Nur eins da das NN selbst die löche lernt?
+
     roi_dict["ind_holes_to_ex"] = [np.asarray([np.argwhere(roi_dict["indexes_extended"][i] == ind)[0][0]
                                                 for ind in roi_dict["indexes"][i]])
                                     for i in range(len(roi_dict["indexes"]))]

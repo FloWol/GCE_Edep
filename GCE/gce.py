@@ -10,7 +10,7 @@ import tensorflow as tf
 import tensorflow_probability as tfp
 import pprint
 from matplotlib import pyplot as plt
-import seaborn as sns
+#import seaborn as sns
 import warnings
 from tqdm import tqdm
 from .tf_ops import get_gpu_names
@@ -47,7 +47,7 @@ class Analysis:
         self._nn_spec = None
         self.nn = None
         self._trainable_weights_dict = {}
-        self.set_plot_defaults()
+        #self.set_plot_defaults()
         self._strategy = tf.distribute.MirroredStrategy()
         self._gce_module_folder = os.path.dirname(os.path.abspath(__file__))
         print('Number of devices: {}'.format(self._strategy.num_replicas_in_sync))
@@ -409,9 +409,9 @@ class Analysis:
             masked_indices[total_mask_neg] = 0
             masked_indices = np.nonzero(np.any(masked_indices != 0, axis=0))[0]
 
-            fermi_exp_compressed = fermi_exp[:,masked_indices]
+
         else:
-            masked_indices = fermi_exp
+            masked_indices = fermi_exp.copy()
             masked_indices[total_mask_neg] = 0
             masked_indices = np.nonzero(np.any(masked_indices != 0, axis=0))[0]
 
@@ -1297,12 +1297,12 @@ class Analysis:
             raise NotImplementedError
         return out
 
-    @staticmethod
-    def set_plot_defaults():
-        sns.set_context("talk")
-        sns.set_style("ticks")
-        plt.rcParams["font.family"] = "serif"
-        plt.rcParams["mathtext.fontset"] = "dejavuserif"
-        plt.rcParams["font.size"] = 14
-        plt.rc('xtick', labelsize='small')
-        plt.rc('ytick', labelsize='small')
+    # @staticmethod
+    # def set_plot_defaults():
+    #     sns.set_context("talk")
+    #     sns.set_style("ticks")
+    #     plt.rcParams["font.family"] = "serif"
+    #     plt.rcParams["mathtext.fontset"] = "dejavuserif"
+    #     plt.rcParams["font.size"] = 14
+    #     plt.rc('xtick', labelsize='small')
+    #     plt.rc('ytick', labelsize='small')

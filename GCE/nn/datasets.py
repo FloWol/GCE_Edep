@@ -34,10 +34,9 @@ class Dataset(object):
         self._p = params
         self._g = generator
         rescale_compressed = self._g.settings_dict["rescale_compressed"]
-        self._rescale_compressed_expanded = np.expand_dims(rescale_compressed,  -1).astype('float32')
-        #PFUSCH orifinal war 0 astype und tf convert nicht mehr gebraucht wenn nur um 1D erweitert, wenn transponiert  -1 auf 0 setzten
+        self._rescale_compressed_expanded = np.expand_dims(rescale_compressed,  0).astype('float32')
         self._rescale_compressed_expanded = tf.convert_to_tensor(self._rescale_compressed_expanded)
-        print(self._rescale_compressed_expanded.shape)
+
 
         # Store batch size and prefetch buffer size
         if self._g.train_val_test == 0:
