@@ -203,6 +203,11 @@ def make_map(flux_arr, temp, exp, pdf_psf_sampler, Ebins, weights, upscale_nside
     #
     # if actual ROI is subset: set flux array of the PSs in the ROI, as well as num_phot
     # NOTE: inds_outside_roi should be a SET, gives great speed-up for member search!
+    print("New Map")
+    print(num_phot.sum())
+    print(flux_arr.size)
+    print(flux_arr.max())
+    print(flux_arr.mean())
     if inds_outside_roi is not None:
         inds_ps_not_in_roi = np.asarray([counter for (counter, ind) in enumerate(inds_ps) if ind in inds_outside_roi])
         if len(inds_ps_not_in_roi) > 0:

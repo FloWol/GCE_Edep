@@ -262,7 +262,7 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
             # Determine the expected number of sources
             n_sources_exp = flux_desired / exp_value
             # Draw the observed number of sources from a Poisson distribution
-            n_sources = np.random.poisson(n_sources_exp) #hier weight?
+            n_sources = np.random.poisson(n_sources_exp)
             # Initialise total flux
             tot_flux = np.infty
             # Draw fluxes until total flux is in valid range
