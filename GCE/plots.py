@@ -1689,11 +1689,25 @@ def mean_bins(Ebins):
     return mean_Ebins
 
 def plot_mean_spectra(params,maps):
+    """
+    Puts out a plot that shows the sum of all counts over all templates and maps vs. energy
+    Energy bins are representet by the mean value of the bin
+
+    :param params:
+    :param maps:
+    :return:
+    """
+    Ebins = params.data["Ebins"]
     # exposure=get_exposure()
     # true_flux, total_flux_per_map, flux_per_Ebin = get_flux_from_maps(maps, true_ffs)
-    sum_map=maps.sum(0) # done to throw all counts into one map (temp, ebin)
-    energy_map=sum_map.sum(0) # sum over templates to only get counts in energy space
-    Ebins = params.data["Ebins"]
+    if len(maps.shape) == 3:
+        sum_map=maps.sum(0) # done to throw all counts into one map (temp, ebin)
+        energy_map=sum_map.sum(0) # sum over templates to only get counts in energy space
+
+
+    elif len(maps.shape) == 2:
+        #no sum over maps needed only over pixel
+        energy_map=maps.sum(0) # sum over templates/pix to only get counts in energy space
 
     Ebins=mean_bins(Ebins)
     plt.xscale("log")
@@ -1723,7 +1737,11 @@ def plot_mean_spectra_template(params, maps):
     models = params.mod["models"]
     n_models = len(params.mod["models"])-1
 
-    sum_map = maps.sum(0) # done to throw all counts into one map (temp, ebin)
+    if len(maps.shape) == 3:
+        sum_map = maps.sum(0) # done to throw all counts into one map (temp, ebin)
+
+    elif len(maps.shape) == 2:
+        sum_map = maps
 
     Ebins=mean_bins(Ebins)
 

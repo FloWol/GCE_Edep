@@ -130,14 +130,14 @@ class PairGeneratorCNNPreGenerated(PairGenerator):
                                         for key in self._p.mod["models"]])
 
 
-                template_map_counts = self._data_dict["data"][self._index_in_array, :, :] #TODO array mit batches
+                template_map_counts = self._data_dict["data"][self._index_in_array, :, :]
                 new_array = template_map_counts
 
                 # Get histogram
                 if self._p.nn.hist["return_hist"]:
                     try:
                         hict_scd = np.asarray([self._data_dict["hists"][temp]
-                                               [self._p.nn.hist["which_histogram"]][self._index_in_array, :] #TODO understand this
+                                               [self._p.nn.hist["which_histogram"]][self._index_in_array, :]
                                                for temp in self._p.nn.hist["hist_templates"]]).T
                     except KeyError as e:
                         print("No histogram data found or histogram data corrupted! Aborting...")
@@ -147,7 +147,6 @@ class PairGeneratorCNNPreGenerated(PairGenerator):
 
                 # Check if conditions are satisfied (training data only)
                 ready_to_yield = True
-                #CLEANUP
                 if self.train_val_test == 0 and (self._p.nn.cond["cond_on_training_data"] is not None
                                                  or self._p.nn.cond["cond_on_training_labels"] is not None):
                     impose_cond = self._cond_must_be_imposed \

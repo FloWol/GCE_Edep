@@ -210,10 +210,17 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
                 hp.mollview(t_masked.sum(1), title="Template (exposure-corrected)", nest=True)
                 hp.mollview(exp.sum(1), title="Exposure (nside = " + str(nside) + ")", nest=True)
                 hp.mollview(total_mask_neg[:,0], title="Mask (" + str(mask_type) + ")", nest=True)
+                # for i in range(n_example_plots):
+                #     map_to_plot=sim_maps.sum(2)
+                #     hp.mollview(masked_to_full(map_to_plot[i, :], indices_roi_bins, nside=nside), # indices_roi_bins statt indices_roi
+                #                 title=int(np.round(sim_maps.sum())), nest=True)
                 for i in range(n_example_plots):
-                    map_to_plot=sim_maps.sum(2)
-                    hp.mollview(masked_to_full(map_to_plot[i, :], indices_roi_bins, nside=nside), # indices_roi_bins statt indices_roi
-                                title=int(np.round(sim_maps.sum())), nest=True)
+                    for ebin in range(0, len(Ebins) - 1):
+                        hp.mollview(masked_to_full(sim_maps[i, :, ebin],indices_roi_bins, nside=nside ), title="counts "
+                            + str(int(np.round(sim_maps[i, :, ebin].sum()))) + " Energy GeV : " + str(Ebins[ebin])
+                            + " map: " +str(i) , nest=True)
+                    hp.mollview(masked_to_full(sim_maps[i].sum(1), indices_roi_bins, nside=nside), title="counts "
+                            + str(int(np.round(sim_maps[i, :, :].sum())))+ " map: " + str(i), nest=True)
 
                 multipage(os.path.join(output_path, temp + "_examples.pdf"))
                 plt.close("all")
@@ -221,8 +228,8 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
     # Initialise Ray
     if t_ps:
         #os.environ['PYTHONPATH'] = ("/home/florianwolf/Desktop/Python3.8/Python-3.8.10/GCE_env/GCE_NN/")
-        ray.init(**ray_settings)
-        #ray.init(local_mode=True) #for debugging
+        #ray.init(**ray_settings)
+        ray.init(local_mode=True) #for debugging
 
 
         if "num_cpus" in ray_settings.keys():
@@ -426,7 +433,11 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
                     hp.mollview(total_mask_neg[:,0], title="Mask (" + str(mask_type) + ")", nest=True)
                     hp.mollview(total_mask_neg_safety, title="Extended mask (allowing leakage into ROI)", nest=True)
                     for i in range(n_example_plots):
-                        hp.mollview(sim_maps[i, :, 0], title=int(np.round(sim_maps[i, :, 0].sum())), nest=True)
+                        for ebin in range(0,len(Ebins)-1):
+                            hp.mollview(sim_maps[i, :, ebin], title="counts"
+                            + str(int(np.round(sim_maps[i, :, ebin].sum()))) + " Energy: " + str(Ebins[ebin]) + " map: " + str(i) , nest=True)
+                        hp.mollview(sim_maps[i].sum(1), title="counts"
+                             + str(int(np.round(sim_maps[i].sum()))) + " map: " + str(i), nest=True)
 
                     multipage(os.path.join(output_path, temp + "_examples.pdf"))
                     plt.close("all")
