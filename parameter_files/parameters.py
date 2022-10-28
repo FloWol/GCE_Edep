@@ -95,7 +95,7 @@ def get_params(int_flag=0):
     # General settings
     ###################################
     p_gen = DotDict()
-    p_gen["data_root"] = "/home/flo/GCE_NN/data"  # data folder
+    p_gen["data_root"] = "/home/flo/GCE_NN/data/"  # data folder
     p_gen["fermi_root"] = os.path.join(p_gen["data_root"], "fermi_data_edep")  # root folder containing Fermi data
     p_gen["template_maps_root"] = os.path.join(p_gen["data_root"], "Template_maps")  # folder for template maps
     p_gen["combined_maps_root"] = os.path.join(p_gen["data_root"], "Combined_maps")  # folder for combined maps
@@ -123,13 +123,13 @@ def get_params(int_flag=0):
     # Modeling settings
     ###################################
     p_mod = DotDict()
-    p_mod["models_P"] =[] #["dif_O_pibs", "dif_O_ic", "iso", "bub"]
+    p_mod["models_P"] =["dif_O_pibs", "dif_O_ic", "iso", "bub"]
     # list of Poissonian templates
     #p_mod["models_P"] = ["bub"]#["dif_O_pibs", "bub"]  # list of Poissonian templates
     p_mod["models_PS"] = ["gce_12_PS","thin_disk_PS"]  # list of PS templates
     #p_mod["models_PS"] = ["gce_12_PS", "iso_PS"]  # list of PS templates
     # Note: point-source models use the same names as the Poissonian models, but with a trailing "_PS"!
-    p_mod["model_names_P"] = []#[r"diffuse $\pi^0$ + BS", "diffuse IC", "isotropic", r"$\it{Fermi}$ bubbles"]  # names: P
+    p_mod["model_names_P"] = [r"diffuse $\pi^0$ + BS", "diffuse IC", "isotropic", r"$\it{Fermi}$ bubbles"]  # names: P
     #p_mod["model_names_P"] = [r"diffuse $\pi^0$ + BS", r"$\it{Fermi}$ bubbles"]
     #p_mod["model_names_P"] = [r"$\it{Fermi}$ bubbles"]  # names: P
     p_mod["model_names_PS"] = ["GCE", "thin disk PS"]
@@ -148,10 +148,10 @@ def get_params(int_flag=0):
     p_tt["data_name"] = "Example"  # name of data folder for the template maps
     p_tt["filename_base"] = "Maps"  # name basis of template map files
     p_tt["poisson_A_is_log"] = False  # is log10(A) rather than A specified for the Poissonian templates in prior_dict?
-    p_tt["n_chunk"] = int(20)  # number of chunks to compute per job
-    p_tt["n_sim_per_chunk"] = int(10)  # number of simulations per chunk and per model (one output file per chunk)
+    p_tt["n_chunk"] = int(1000)  # number of chunks to compute per job
+    p_tt["n_sim_per_chunk"] = int(100)  # number of simulations per chunk and per model (one output file per chunk)
     # Note: the total number of maps for each template will be "n_chunk" * "n_sim_per_chunk" (* # jobs)
-    p_tt["add_two_temps_PS"] = [] #["iso_PS"]  # list of PS templates for which TWICE the number of maps will be generated.
+    p_tt["add_two_temps_PS"] = ["gce_12_PS"] #["iso_PS"]  # list of PS templates for which TWICE the number of maps will be generated.
     # Later, these maps can be added pairwise, modeling two distinct populations.
 
     # Prior settings
@@ -189,18 +189,17 @@ def get_params(int_flag=0):
     Edep_dict = DotDict()
     ##################################
     # Poissonian
-    Edep_dict["dif_O_pibs"] = {"mean_exp": [0.7, 0.8], "var_exp": 3, "skew_std": 0}
-    Edep_dict["dif_O_ic"] = {"mean_exp": [0.7, 0.8], "var_exp": 3, "skew_std": 0}
-    Edep_dict["iso"] = {"mean_exp": [0.7, 0.8], "var_exp": 3, "skew_std": 0}
-    Edep_dict["bub"] =  {"mean_exp": [0.7, 0.8], "var_exp": 3, "skew_std": 0}
-    Edep_dict["gce_12"] = {"mean_exp": [0.7, 0.8], "var_exp": 3, "skew_std": 0}
+    Edep_dict["dif_O_pibs"] = {"mean_exp": [np.log10(2),np.log10(20)], "var_exp": 4,"skew_std": 5}
+    Edep_dict["dif_O_ic"] = {"mean_exp": [np.log10(2),np.log10(20)], "var_exp": 4,"skew_std": 5}
+    Edep_dict["iso"] = {"mean_exp": [np.log10(2),np.log10(20)], "var_exp": 4,"skew_std": 5}
+    Edep_dict["bub"] =  {"mean_exp": [np.log10(2),np.log10(20)], "var_exp": 4,"skew_std": 5}
+    Edep_dict["gce_12"] = {"mean_exp": [np.log10(2),np.log10(20)], "var_exp": 4,"skew_std": 5}
 
 
 
     # Point sources
-    Edep_dict["gce_12_PS"] = {"mean_exp": [0.7, 0.8], "var_exp": 3, "skew_std": 0}
-    Edep_dict["thin_disk_PS"] = {"mean_exp": [0.7, 0.8], "var_exp": 3, "skew_std": 0}
-    
+    Edep_dict["gce_12_PS"] = {"mean_exp": [np.log10(2),np.log10(20)], "var_exp": 4,"skew_std": 5}
+    Edep_dict["thin_disk_PS"] = {"mean_exp": [np.log10(2),np.log10(20)], "var_exp": 4,"skew_std": 5}
 
 
     Edep_dict["Edep_psf"] = True
@@ -212,8 +211,8 @@ def get_params(int_flag=0):
     p_comb = DotDict()
     p_comb["data_name"] = "Example_comb"  # name of data folder for the combined maps
     p_comb["filename_base"] = "Maps"  # name basis of combined map files
-    p_comb["N_val"] = 5  # number of files for the validation data set
-    p_comb["N_test"] = 5  # number of files for the testing data set
+    p_comb["N_val"] = 50  # number of files for the validation data set
+    p_comb["N_test"] = 5 # number of files for the testing data set
     # the remaining files will be used as training data
 
     # SCD histogram settings

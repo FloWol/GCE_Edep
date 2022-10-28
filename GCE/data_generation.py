@@ -298,7 +298,7 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
             t_masked = t * (1 - total_mask_neg_safety)[:, np.newaxis]
 
             # Correct flux limit priors for larger mask (after simulating the counts, ROI mask will be applied)
-            flux_corr_fac = np.mean(t_masked.sum(0) / ((t * (1 - total_mask_neg))).sum(0))
+            flux_corr_fac = np.mean(t_masked.sum(0) / ((t * (1 - total_mask_neg))).sum(0)) #PFUSCH ??
             flux_lims_corr = [None] * 2
             for i in range(2):
                 if prior_dict[temp]["flux_log"]:

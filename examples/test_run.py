@@ -14,8 +14,8 @@ gce.load_params("../parameter_files/parameters.py")
 
 ray_settings = {"num_cpus": 4}  # select the number of CPUs here
 gce.generate_template_maps(ray_settings, n_example_plots=5, job_id=0)
-#
-# gce.combine_template_maps(save_filenames=True, do_combine=True)
+
+gce.combine_template_maps(save_filenames=True, do_combine=True)
 
 # gce.build_pipeline() #PFUSCH potentielle fehlerquelle
 # #
