@@ -185,6 +185,7 @@ def combine_template_maps(save_filenames, params, job_id=None, train_range=None,
     end_test = n_files_test - 1 if test_range is None else test_range[1]
 
     # Do the following for the training and the test samples
+    # Do the following for the training and the test samples
     for tvt, files_dict in enumerate([train_files_dict, val_files_dict, test_files_dict]):
 
         # Set training / validation / testing specific settings

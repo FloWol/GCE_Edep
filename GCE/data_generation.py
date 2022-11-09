@@ -16,6 +16,7 @@ import warnings
 import sys
 from .pdf_sampler import PDFSampler
 from .skew_cdf_sampler import CDFSampler
+
 from .pdf_energy_sampler import PDFSampler as PDF_Energy_Sampler
 
 
@@ -227,9 +228,10 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
 
     # Initialise Ray
     if t_ps:
+        os.environ['PYTHONPATH'] = ("/home/fs71636/flowolf/GCE_env/CNN_to_VSC5")
         #os.environ['PYTHONPATH'] = ("/home/florianwolf/Desktop/Python3.8/Python-3.8.10/GCE_env/GCE_NN/")
-        #ray.init(**ray_settings)
-        ray.init(local_mode=True) #for debugging
+        ray.init(**ray_settings)
+        #ray.init(local_mode=True) #for debugging
 
 
         if "num_cpus" in ray_settings.keys():

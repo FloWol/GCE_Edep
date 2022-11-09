@@ -95,7 +95,7 @@ def get_params(int_flag=0):
     # General settings
     ###################################
     p_gen = DotDict()
-    p_gen["data_root"] = "/home/flo/GCE_NN/data/"  # data folder
+    p_gen["data_root"] = "/home/flo/GCE_NN/data/"  # data folder #"/gpfs/data/fs71636/flowolf"#
     p_gen["fermi_root"] = os.path.join(p_gen["data_root"], "fermi_data_edep")  # root folder containing Fermi data
     p_gen["template_maps_root"] = os.path.join(p_gen["data_root"], "Template_maps")  # folder for template maps
     p_gen["combined_maps_root"] = os.path.join(p_gen["data_root"], "Combined_maps")  # folder for combined maps
@@ -148,7 +148,7 @@ def get_params(int_flag=0):
     p_tt["data_name"] = "Example"  # name of data folder for the template maps
     p_tt["filename_base"] = "Maps"  # name basis of template map files
     p_tt["poisson_A_is_log"] = False  # is log10(A) rather than A specified for the Poissonian templates in prior_dict?
-    p_tt["n_chunk"] = int(1000)  # number of chunks to compute per job
+    p_tt["n_chunk"] = int(2)  # number of chunks to compute per job
     p_tt["n_sim_per_chunk"] = int(100)  # number of simulations per chunk and per model (one output file per chunk)
     # Note: the total number of maps for each template will be "n_chunk" * "n_sim_per_chunk" (* # jobs)
     p_tt["add_two_temps_PS"] = ["gce_12_PS"] #["iso_PS"]  # list of PS templates for which TWICE the number of maps will be generated.
@@ -211,8 +211,8 @@ def get_params(int_flag=0):
     p_comb = DotDict()
     p_comb["data_name"] = "Example_comb"  # name of data folder for the combined maps
     p_comb["filename_base"] = "Maps"  # name basis of combined map files
-    p_comb["N_val"] = 50  # number of files for the validation data set
-    p_comb["N_test"] = 5 # number of files for the testing data set
+    p_comb["N_val"] = 0  # number of files for the validation data set
+    p_comb["N_test"] = 0 # number of files for the testing data set
     # the remaining files will be used as training data
 
     # SCD histogram settings

@@ -13,11 +13,11 @@ from tensorflow import gather, gather_nd
 def get_exposure():
     settings_dict = pickle.load(
         open("/home/flo/GCE_NN/data/Combined_maps/Example_comb_256/settings_combined.pickle", "rb"))
-    exp = np.unique(np.asarray([settings_dict[key]["exp"] for key in settings_dict.keys()]), axis=0).squeeze()
-    indices_roi_all = np.asarray([settings_dict[temp]["indices_roi"] for temp in settings_dict.keys()])
-    indices_roi_unique = np.unique(indices_roi_all, axis=0)
-    exp_indices_roi = exp[indices_roi_unique.flatten()]
-    exposure = np.expand_dims(exp_indices_roi, 1)
+    exp = exp = np.asarray(settings_dict['gce_12_PS']["exp"])
+    masked_indices=settings_dict["gce_12_PS"]["indices_roi_all_bins"]
+    del settings_dict
+    exposure = exp[masked_indices, :]
+
 
     return exposure
 

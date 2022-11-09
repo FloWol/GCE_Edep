@@ -218,7 +218,7 @@ def make_map(flux_arr, temp, exp, pdf_psf_sampler, Ebins, weights, upscale_nside
 
         pix_counts = np.repeat(pix_ps, num_phot[:,ebin_ind])
     # How to deal with PSF?
-
+        num_phot_cleaned = num_phot_in_roi.copy() #Pfusch damit num_phot cleaned nicht zufrüh referenced wird
         # if no PSF:
         if pdf_psf_sampler is None:
             posit = pix_counts
