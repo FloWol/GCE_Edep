@@ -127,7 +127,7 @@ class Dataset(object):
         required_keys = ["gen", "data", "nn"]
         assert np.all([k in self._p.keys() for k in required_keys]), \
             "Missing keys! Required keys: {:}, found keys: {:}".format(required_keys, self._p.keys())
-        indexes_top = self._g.settings_dict["indices_roi"]
+        indexes_top = self._g.settings_dict["indices_roi_all_bins"]
         rescale_compressed = self._g.settings_dict["rescale_compressed"]
         return get_fermi_counts(self._p, indexes_top=indexes_top, rescale_compressed=rescale_compressed)
 

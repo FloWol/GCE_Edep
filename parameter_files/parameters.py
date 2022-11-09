@@ -115,7 +115,7 @@ def get_params(int_flag=0):
     p_data["nside"] = int(256)  # nside resolution parameter of the data
     p_data["exposure"] = "Fermi"  # one of "Fermi", "Fermi_mean", or constant integer
     p_data["psf"] = True  # if True: apply Fermi PSF to PS templates when generating PS maps
-    p_data["Ebins"] =(2*np.logspace(-1,3,41))[10:21]#np.linspace(0.1,100,30)#np.array([0.1,1,6,20,50,100])#np.array([0.1,1,3,10, ,100])#np.array([0.3,0.69,1.4])#np.array([0.1, 0.2, 0.3, 0.5, 0.8, 1.5, 10])
+    p_data["Ebins"] =(2*np.logspace(-1,3,41))[10:21] #please always define Ebins in logspace
     # (see the function fermi_psf() in data_utils.py)
     p["data"] = p_data
 

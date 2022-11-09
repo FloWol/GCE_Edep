@@ -680,7 +680,7 @@ def split_into_n_and_s(template, nside=128, filename="template"):
     return template_n, template_s
 
 
-def get_fermi_counts(params, indexes_top, rescale_compressed=None, only_hemisphere=None):
+def get_fermi_counts(params, indexes_top, rescale_compressed=None, only_hemisphere=None, model_O = True):
     """
     Returns the counts in the Fermi map after the same pre-processing as for the training data.
     :param params: parameter dictionary
@@ -697,18 +697,31 @@ def get_fermi_counts(params, indexes_top, rescale_compressed=None, only_hemisphe
     mask_type = params.data["mask_type"]
     remove_exp = params.nn["remove_exp"]
 
+
     fermi_data = get_template(params.gen["fermi_folder"], "fermi_map")
+
+    if model_O == True:
+        fermi_data = fermi_data[10:20]
 
     # Mask Galactic plane up to "remove_plane" degrees
     total_mask_neg = make_mask_total(band_mask=inner_band > 0, band_mask_range=inner_band,
                                         mask_ring=outer_rad is not None, inner=0, outer=outer_rad,
-                                        nside=hp.npix2nside(len(fermi_data)))
-    if mask_type == "3FGL":
-        total_mask_neg = (
-                    1 - (1 - total_mask_neg) * (1 - get_template(fermi_path, "3FGL_mask")).astype(bool)).astype(bool)
-    elif mask_type == "4FGL":
-        total_mask_neg = (
-                    1 - (1 - total_mask_neg) * (1 - get_template(fermi_path, "4FGL_mask")).astype(bool)).astype(bool)
+                                        nside=hp.npix2nside(len(fermi_data[0,:])))
+
+    if model_O == True:
+        if mask_type == "3FGL":
+            total_mask_neg = (
+                        1 - (1 - total_mask_neg) * (1 - get_template(fermi_path, "3FGL_mask")).astype(bool)).astype(bool)[10:20]
+        elif mask_type == "4FGL":
+            total_mask_neg = (
+                        1 - (1 - total_mask_neg) * (1 - get_template(fermi_path, "4FGL_mask")).astype(bool)).astype(bool)[10:20]
+    else:
+        if mask_type == "3FGL":
+            total_mask_neg = (
+                        1 - (1 - total_mask_neg) * (1 - get_template(fermi_path, "3FGL_mask")).astype(bool)).astype(bool)
+        elif mask_type == "4FGL":
+            total_mask_neg = (
+                        1 - (1 - total_mask_neg) * (1 - get_template(fermi_path, "4FGL_mask")).astype(bool)).astype(bool)
 
     if only_hemisphere is not None:
         total_mask_pos_n, total_mask_pos_s = split_into_n_and_s(1 - total_mask_neg,
@@ -722,7 +735,7 @@ def get_fermi_counts(params, indexes_top, rescale_compressed=None, only_hemisphe
     fermi_data = hp.reorder(fermi_data, r2n=True)
 
     # Reduce to ROI
-    fermi_data = fermi_data[indexes_top]
+    fermi_data = fermi_data[:,indexes_top].T
 
     # Remove exposure correction
     if rescale_compressed is not None and remove_exp:

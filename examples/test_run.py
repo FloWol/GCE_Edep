@@ -18,8 +18,9 @@ gce.load_params("../parameter_files/parameters.py")
 #gce.combine_template_maps(save_filenames=True, do_combine=True)
 
 gce.build_pipeline()
+fermi_counts = gce.datasets["test"].get_fermi_counts()
 #
-n_samples = 100
+n_samples = 5
 test_samples = gce.datasets["train"].get_samples(n_samples)
 test_data, test_ffs, test_hists = test_samples["data"], test_samples["label"][0], test_samples["label"][0]
 tau = np.arange(5, 100, 5) * 0.01  # quantile levels for SCD histograms, from 5% to 95% in steps of 5%
@@ -37,22 +38,27 @@ pred = gce.predict(test_data, tau=tau, multiple_taus=True)  # get the NN predict
 #
 #
 #
-gce.plot_flux_ebins_with_color_flux(test_data,test_ffs, pred)
+# gce.plot_flux_ebins_with_color_flux(test_data,test_ffs, pred)
 abv_thresh, outlier_pred, outlier_errors, outlier_true = gce.plot_outliers(test_ffs, pred, threshold=0.11, only_errors=False,show_mapID=False)
 gce.plot_flux_fractions_Ebin(test_ffs, pred)
 gce.plot_flux_fractions_total(test_ffs, pred)
 gce.plot_ebin_ff(test_ffs, pred)
-gce.plot_ff_ebins_with_color_flux(test_data,test_ffs, pred)
-gce.plot_ff_total_with_color_flux(test_data,test_ffs, pred)
+# gce.plot_ff_ebins_with_color_flux(test_data,test_ffs, pred)
+# gce.plot_ff_total_with_color_flux(test_data,test_ffs, pred)
 #
 gce.plot_templates_scaled_ff(test_ffs, pred)
 
 gce.plot_flux_per_Ebin(test_data, test_ffs, pred, abv_thresh[0])
 gce.plot_ff_per_Ebin(test_ffs, pred, abv_thresh[0])
+#
+#
+
+fermi_counts=np.expand_dims(fermi_counts,0)
+pred = gce.predict(fermi_counts, tau=tau, multiple_taus=True)
+gce.plot_flux_fractions_fermi(pred,fermi_counts,  Flux=True)
+gce.plot_flux_fractions_fermi(pred, fermi_counts)
 
 
-
-fermi_counts = gce.datasets["test"].get_fermi_counts()
 
 # for image in abv_thresh[0]: #np.unique(abv_thresh)[0]
 #     title = "Map Nr. " + str(image)
@@ -73,6 +79,13 @@ fermi_counts = gce.datasets["test"].get_fermi_counts()
 #     help_dict={"ff_mean": y, "ff_logvar": ye}
 #     #gce.plot_ff_per_Ebin(test_ffs, pred, image)
 #     #gce.plot_flux_fractions_Ebin(x, help_dict)
+
+r = gce.p.data["outer_rad"] + 1
+
+hp.cartview(gce.decompress(fermi_counts * gce.generators["test"].settings_dict["rescale_compressed"]), nest=True,
+            title="Fermi data: Count space", max=100, lonra=[-r, r], latra=[-r, r])
+# hp.cartview(gce.decompress(fermi_counts), nest=True, title="Fermi data: Flux space", max=100)
+plt.show()
 
 
 

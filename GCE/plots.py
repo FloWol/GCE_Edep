@@ -51,7 +51,7 @@ def get_flux_from_maps(maps,true_ffs):
 def plot_flux_fractions_Ebin(params, true_ffs, preds, nptfit_ffs=None, out_file="ff_error_plot.pdf", legend=None,
                         show_stripes=True, show_stats=True, delta_y=0, marker="^", marker_nptf="o", ms=8, ms_nptfit=6,
                         alpha=0.4, lw=0.8, lw_nptfit=1.6, ecolor=None, ticks=None, figsize=None, show_mapID=False, only_errors=False,
-                             mapID=None):
+                             mapID=None, save=True):
     """
     Make an error plot of the NN flux fraction predictions.
     :param params: parameter dictionary
@@ -218,13 +218,76 @@ def plot_flux_fractions_Ebin(params, true_ffs, preds, nptfit_ffs=None, out_file=
     scat_fig.text(0.02, 0.5, "Estimated", ha="center", va="center", rotation="vertical")
     plt.tight_layout()
     plt.subplots_adjust(hspace=0.0, wspace=0.0)
-    plt.show()
+    if save == True:
+        plt.savefig("FluxFractionsEnergyBins.png")
+        plt.show()
+    else:
+        return scat_fig, scat_ax
+
+
 
     if out_file is not None:
         save_folder = params.nn["figures_folder"]
         scat_fig.savefig(os.path.join(save_folder, out_file), bbox_inches="tight")
 
     return scat_fig, scat_ax
+
+
+def plot_flux_fractions_fermi(params, preds, fermi_counts, Flux=False):
+
+    N_bins = params.data["N_bins"]
+    ebins = params.data["Ebins"]
+    emid = 10 ** ((np.log10(ebins[1:]) + np.log10(ebins[:-1])) / 2.)
+
+    model_names = params.mod["model_names"]
+
+
+    if "ff_mean" not in preds.keys():
+        raise KeyError("Key 'ff_mean' not found!")
+    elif isinstance(preds["ff_mean"], np.ndarray):
+        pred_ffs = preds["ff_mean"]
+    else:
+        pred_ffs = preds["ff_mean"].numpy()
+
+    if "ff_logvar" in preds.keys():
+        if isinstance(preds["ff_logvar"], np.ndarray):
+            pred_stds = np.exp(0.5 * preds["ff_logvar"])
+        else:
+            pred_stds = np.exp(0.5 * preds["ff_logvar"].numpy())
+    elif "ff_covar" in preds.keys():
+        pred_stds = np.sqrt(np.asarray([np.diag(c) for c in preds["ff_covar"].numpy()]))
+    else:
+        pred_stds = None
+
+    pred_ffs=pred_ffs[0]
+    pred_stds=pred_stds[0]
+
+    plt.ylabel("Flux Fractions")
+
+    if Flux==True:
+
+        exposure=get_exposure()
+        flux_per_bin = (fermi_counts[0]/exposure).sum(0)
+        pred_ffs=pred_ffs*flux_per_bin
+        pred_stds=pred_stds*flux_per_bin
+        plt.ylabel("Flux")
+
+
+
+    for temp in range(0, pred_ffs.shape[0]):
+        plt.errorbar(emid,pred_ffs[temp,:], yerr=pred_stds[temp, :])
+        plt.scatter(emid, pred_ffs[temp, :], label=model_names[temp], marker="^", alpha=0.8)
+
+    plt.xlabel("Energy Bin Mean")
+
+    plt.yscale('log')
+    plt.xscale('log')
+    plt.legend()
+    if Flux == True:
+        plt.savefig("FluxFractionsFermi.png")
+    else:
+        plt.savefig("FluxFermi.png")
+    plt.show()
 
 
 #TODO do smth about weightening vor allem beim maximum
@@ -378,6 +441,7 @@ def plot_flux_fractions_total(params, true_ffs, preds, nptfit_ffs=None, out_file
     scat_fig.text(0.02, 0.5, "Estimated", ha="center", va="center", rotation="vertical")
     plt.tight_layout()
     plt.subplots_adjust(hspace=0.0, wspace=0.0)
+    plt.savefig("FluxFractionTemps.png")
     plt.show()
 
     if out_file is not None:
@@ -723,6 +787,7 @@ def plot_ff_per_Ebin(params, y_true, y_pred, image):
     plt.legend(bbox_to_anchor=(0,1.02,1,0.2), loc="lower left",
                 mode="expand",borderpad=2, ncol=y_true.shape[1],fontsize="small")
 
+    plt.savefig("FluxFractionMap " +str(image) + ".png")
     plt.show()
 
 
@@ -798,6 +863,7 @@ def plot_flux_per_Ebin(params, maps,y_true, y_pred, image, lineplot = True, titl
     plt.legend(bbox_to_anchor=(0,1.02,1,0.2), loc="lower left",
                 mode="expand",borderpad=2, ncol=y_true.shape[1],fontsize="small")
 
+    plt.savefig("FluxMap " + str(image) + ".png")
     plt.show()
 
 
@@ -881,8 +947,8 @@ def plot_outliers(params,y_true, y_pred, threshold=0.04, only_errors=False, show
 
 
     #plot_flux_fractions_total(params, outlier_true, outlier_pred_dict, only_errors=only_errors)
-    plot_flux_fractions_Ebin(params, outlier_true, outlier_pred_dict, only_errors=only_errors, show_mapID=show_mapID , mapID=abv_thresh)
-
+    scat_fig, ax = plot_flux_fractions_Ebin(params, outlier_true, outlier_pred_dict, only_errors=only_errors, show_mapID=show_mapID , mapID=abv_thresh, save=False)
+    scat_fig.savefig("outliers.png")
 
 
 
@@ -1013,6 +1079,7 @@ def plot_templates_scaled_ff(params, true_ffs, preds, nptfit_ffs=None, out_file=
     scat_fig.text(0.02, 0.5, "Estimated", ha="center", va="center", rotation="vertical")
     plt.tight_layout()
     plt.subplots_adjust(hspace=0.4, wspace=0.6)
+    plt.savefig("templatesScaledFF.png")
     plt.show()
 
 
@@ -1174,6 +1241,7 @@ def plot_ebin_ff(params, true_ffs, preds, nptfit_ffs=None, out_file="ff_error_pl
     scat_fig.text(0.02, 0.5, "Estimated", ha="center", va="center", rotation="vertical")
     plt.tight_layout()
     plt.subplots_adjust(hspace=0.0, wspace=0.0)
+    plt.savefig("EbinFF.png")
     plt.show()
 
     if out_file is not None:
@@ -1329,11 +1397,14 @@ def plot_ff_ebins_with_color_flux(params,maps, true_ffs, preds, nptfit_ffs=None,
     scat_fig.text(0.02, 0.5, "Estimated", ha="center", va="center", rotation="vertical")
     plt.tight_layout()
     plt.subplots_adjust(hspace=0.0, wspace=0.0)
+    plt.savefig("FF_Ebins_ColorFlux.png")
     plt.show()
 
     if out_file is not None:
         save_folder = params.nn["figures_folder"]
         scat_fig.savefig(os.path.join(save_folder, out_file), bbox_inches="tight")
+
+
 
     return scat_fig, scat_ax
 
@@ -1494,6 +1565,7 @@ def plot_flux_ebins_with_color_flux(params,maps, true_ffs, preds, nptfit_ffs=Non
     scat_fig.text(0.02, 0.5, "Estimated", ha="center", va="center", rotation="vertical")
     plt.tight_layout()
     plt.subplots_adjust(hspace=0.5, wspace=0.5)
+    plt.savefig("FluxWithColor.png")
     plt.show()
 
     if out_file is not None:
@@ -1673,6 +1745,7 @@ def plot_ff_total_with_color_flux(params,maps, true_ffs, preds, nptfit_ffs=None,
     scat_fig.text(0.02, 0.5, "Estimated", ha="center", va="center", rotation="vertical")
     plt.tight_layout()
     plt.subplots_adjust(hspace=0.0, wspace=0.0)
+    plt.show("FFTotalWithColor.png")
     plt.show()
 
     if out_file is not None:
@@ -1714,6 +1787,7 @@ def plot_mean_spectra(params,maps):
     plt.plot(Ebins,energy_map, marker="^")
     #plt.xticks(Ebins)
     plt.title("Counts per energybins")
+    plt.savefig("MeanSpectra.png")
     plt.show()
 
 def plot_spectra(params, maps):
@@ -1730,6 +1804,7 @@ def plot_spectra(params, maps):
         plt.title(str(models[model]))
         plt.xscale("log")
         plt.xticks(Ebins)
+        plt.savefig("Spectrum" + str(models[model]) + ".png")
         plt.show()
 
 def plot_mean_spectra_template(params, maps):
@@ -1752,6 +1827,7 @@ def plot_mean_spectra_template(params, maps):
         plt.title(str(models[model]))
         plt.xticks(Ebins)
         plt.xscale("log")
+        plt.savefig("MeanTempSpectra" + str(models[model]) + ".png")
         plt.show()
 
 
