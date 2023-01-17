@@ -581,13 +581,7 @@ class Analysis:
         self._check_keys_exist(required_keys)
 
         prior_dict = self.p.tt.priors
-        n_sim_per_chunk = self.p.tt["n_sim_per_chunk"]
-
-        #get flux
-        loc_ = np.random.uniform(*prior_dict[temp]["mean_exp"], size=n_sim_per_chunk)
-        scale_ = prior_dict[temp]["var_exp"] * np.random.chisquare(1, size=n_sim_per_chunk)
-        skew_ = np.random.normal(loc=0, scale=prior_dict[temp]["skew_std"], size=n_sim_per_chunk)
-        # flux_arr_ = 10 ** stats.skewnorm.rvs(skew_, loc=loc_, scale=np.sqrt(scale_), size=50)
+        n_sim_per_chunk = 1
 
         #exposure and energy dependence
         exp = self.template_dict["exp"]
@@ -601,8 +595,10 @@ class Analysis:
         #get template
         t = self.template_dict["T_flux"][temp]
         total_mask_neg_safety = self.template_dict["mask_safety_full"]
-        t_masked = t * (1 - total_mask_neg_safety)
+        t_masked = t * (1 - total_mask_neg_safety)[:, np.newaxis]
+        t_masked = t_masked.mean(1)
         t_final = t_masked / t_masked.sum()
+        t_final[265469] = t_final[265469] - 0.0000000000000003
         total_mask_neg = self.template_dict["mask_ROI_full"]
 
         Ebins=self.p.data["Ebins"]
@@ -610,21 +606,72 @@ class Analysis:
         r = self.p.data["outer_rad"] + 1
         inds_ps_outside_roi = set(np.setdiff1d(self.template_dict["indices_safety"], self.template_dict["indices_roi"]))
 
-        # Generate template maps
 
-        sim_maps, map_arr_no_psf, num_phot_cleaned, flux_arr_return = make_map(np.asarray([100]), t_final, np.ones_like(exp) ,
-                                                    get_fermi_pdf_sampler(Ebins), pdf_E, Ebins,
-                                                    is_nest=True, inds_outside_roi=inds_ps_outside_roi, clean_count_list=False, Edep_psf=self.p.Edep["Edep_psf"])
+        # Draw the parameters
+        mean_draw = np.random.uniform(*prior_dict[temp]["mean_exp"], size=n_sim_per_chunk)
+        var_draw = prior_dict[temp]["var_exp"] * np.random.chisquare(1, size=n_sim_per_chunk)
+        skew_draw = np.random.normal(loc=0, scale=prior_dict[temp]["skew_std"], size=n_sim_per_chunk)
+
+        # draw energy functions
+        mean_draw_E = np.random.uniform(*self.p.Edep[temp]["mean_exp"], size=n_sim_per_chunk)
+        var_draw_E = self.p.Edep[temp]["var_exp"] * np.random.chisquare(1, size=n_sim_per_chunk)
+        skew_draw_E = np.random.normal(loc=0, scale=self.p.Edep[temp]["skew_std"], size=n_sim_per_chunk)
+
+        c = np.zeros(shape=(n_sim_per_chunk, len(Ebins) - 1))  # weight for normalisation
+        x = Ebins
+        sample_size = 1000000
+
+        from .skew_cdf_sampler import CDFSampler
+        for current_map in range(0, n_sim_per_chunk):
+            cdf = stats.skewnorm.cdf(np.log10(x), a=skew_draw_E[current_map], loc=mean_draw_E[current_map],
+                                     scale=np.sqrt(var_draw_E[current_map]))
+            Energy_Sampler = CDFSampler(xvals=x, cdf=cdf)
+            E_draw = Energy_Sampler(sample_size)  # PFUSCH auf logarithm aufpassen
+            Eind = np.digitize(E_draw, Ebins, right=True)
+            num, counts = np.unique(Eind, return_counts=True)
+
+            # to avoid non sampling of certain energy bins and false positioning:
+            helper = np.zeros(len(Ebins) - 1)
+            helper[num - 1] = counts
+            c[current_map, :] = helper / sample_size
+
+        pdf_psf_sampler=get_fermi_pdf_sampler(Ebins, Edep=self.p.Edep["Edep_psf"])
+        sim_maps, map_arr_no_psf, num_phot_cleaned, flux_arr_return = make_map(np.asarray([1]), t_final, exp, pdf_psf_sampler, Ebins, c, upscale_nside=16384, verbose=False,
+                 clean_count_list=False,
+                 inds_outside_roi=inds_ps_outside_roi, is_nest=True, Edep_psf=True)
+
+
+
+        # sim_maps, map_arr_no_psf, num_phot_cleaned, flux_arr_return = make_map(np.asarray([100]), t_final,
+        #                                                                        np.ones_like(exp),
+        #                                                                        get_fermi_pdf_sampler(Ebins), pdf_E,
+        #                                                                        Ebins,
+        #                                                                        is_nest=True,
+        #                                                                        inds_outside_roi=inds_ps_outside_roi,
+        #                                                                        clean_count_list=False,
+        #                                                                        Edep_psf=self.p.Edep["Edep_psf"])
+
+        # sim_maps, n_phot, flux_arr = map(list, zip(*ray.get(
+        #     [create_simulated_map.remote(skew_draw[i_PS], mean_draw[i_PS], np.sqrt(var_draw[i_PS]),
+        #                                  flux_lims_corr, prior_dict[temp]["enforce_upper_flux"],
+        #                                  t_final_id, exp_id, pdf_id, "map_" + temp, c[i_PS][:],
+        #                                  flux_log_=prior_dict[temp]["flux_log"],
+        #                                  inds_outside_roi_=inds_ps_outside_roi_id)
+        #      for i_PS in range(n_sim_per_chunk)])))
+        #sim_maps = np.asarray(sim_maps)
+
+        # Apply ROI mask again and cut off counts outside ROI
+        sim_maps = np.asarray(sim_maps) * np.expand_dims((1 - total_mask_neg), [0])
+
+
+
+        # Generate template maps
 
         nside = self.p.data["nside"]
         mask_type = self.p.data["mask_type"]
 
         sim_maps = np.asarray(sim_maps) * np.expand_dims((1 - total_mask_neg), [-1])
 
-        # hp.mollview(t * (1 - total_mask_neg), title="Template (not exposure-corrected)", nest=True)
-        # hp.mollview(exp, title="Exposure (nside = " + str(nside) + ")", nest=True)
-        # hp.mollview(total_mask_neg, title="Mask (" + str(mask_type) + ")", nest=True)
-        # hp.mollview(total_mask_neg_safety, title="Extended mask (allowing leakage into ROI)", nest=True)
         hp.cartview(sim_maps[:, 0], title="Energy:" + str(np.mean(Ebins[0:2])) + "GeV",lonra=[-r, r], latra=[-r, r], nest=True)
         plt.show()
         hp.cartview(sim_maps[:, 1], title="Energy:" + str(np.mean(Ebins[1:])) + "GeV", lonra=[-r, r], latra=[-r, r],nest=True)

@@ -95,7 +95,7 @@ def get_params(int_flag=0):
     # General settings
     ###################################
     p_gen = DotDict()
-    p_gen["data_root"] = "/home/flo/GCE_NN/data/"  # data folder #"/gpfs/data/fs71636/flowolf"#
+    p_gen["data_root"] = "../data/"  # data folder
     p_gen["fermi_root"] = os.path.join(p_gen["data_root"], "fermi_data_edep")  # root folder containing Fermi data
     p_gen["template_maps_root"] = os.path.join(p_gen["data_root"], "Template_maps")  # folder for template maps
     p_gen["combined_maps_root"] = os.path.join(p_gen["data_root"], "Combined_maps")  # folder for combined maps
@@ -115,7 +115,7 @@ def get_params(int_flag=0):
     p_data["nside"] = int(256)  # nside resolution parameter of the data
     p_data["exposure"] = "Fermi"  # one of "Fermi", "Fermi_mean", or constant integer
     p_data["psf"] = True  # if True: apply Fermi PSF to PS templates when generating PS maps
-    p_data["Ebins"] =(2*np.logspace(-1,3,41))[10:21] #please always define Ebins in logspace
+    p_data["Ebins"] =(2*np.logspace(-1,3,41))[10:21]#np.linspace(0.1,100,30)#np.array([0.1,1,6,20,50,100])#np.array([0.1,1,3,10, ,100])#np.array([0.3,0.69,1.4])#np.array([0.1, 0.2, 0.3, 0.5, 0.8, 1.5, 10])
     # (see the function fermi_psf() in data_utils.py)
     p["data"] = p_data
 
@@ -126,13 +126,13 @@ def get_params(int_flag=0):
     p_mod["models_P"] =["dif_O_pibs", "dif_O_ic", "iso", "bub"]
     # list of Poissonian templates
     #p_mod["models_P"] = ["bub"]#["dif_O_pibs", "bub"]  # list of Poissonian templates
-    p_mod["models_PS"] = ["gce_12_PS","thin_disk_PS"]  # list of PS templates
+    p_mod["models_PS"] = ["gce_12_PS","thin_disk_PS"] #"gce_12_PS" # list of PS templates
     #p_mod["models_PS"] = ["gce_12_PS", "iso_PS"]  # list of PS templates
     # Note: point-source models use the same names as the Poissonian models, but with a trailing "_PS"!
     p_mod["model_names_P"] = [r"diffuse $\pi^0$ + BS", "diffuse IC", "isotropic", r"$\it{Fermi}$ bubbles"]  # names: P
     #p_mod["model_names_P"] = [r"diffuse $\pi^0$ + BS", r"$\it{Fermi}$ bubbles"]
     #p_mod["model_names_P"] = [r"$\it{Fermi}$ bubbles"]  # names: P
-    p_mod["model_names_PS"] = ["GCE", "thin disk PS"]
+    p_mod["model_names_PS"] = ["GCE","thin disk PS"]
     #p_mod["model_names_PS"] = ["GCE", "isotropic PS"]  # names: PS
 
     # p_mod["models_P"] =[]  # list of Poissonian templates
@@ -148,7 +148,7 @@ def get_params(int_flag=0):
     p_tt["data_name"] = "Example"  # name of data folder for the template maps
     p_tt["filename_base"] = "Maps"  # name basis of template map files
     p_tt["poisson_A_is_log"] = False  # is log10(A) rather than A specified for the Poissonian templates in prior_dict?
-    p_tt["n_chunk"] = int(2)  # number of chunks to compute per job
+    p_tt["n_chunk"] = int(3000)  # number of chunks to compute per job
     p_tt["n_sim_per_chunk"] = int(100)  # number of simulations per chunk and per model (one output file per chunk)
     # Note: the total number of maps for each template will be "n_chunk" * "n_sim_per_chunk" (* # jobs)
     p_tt["add_two_temps_PS"] = ["gce_12_PS"] #["iso_PS"]  # list of PS templates for which TWICE the number of maps will be generated.
@@ -199,20 +199,19 @@ def get_params(int_flag=0):
 
     # Point sources
     Edep_dict["gce_12_PS"] = {"mean_exp": [np.log10(2),np.log10(20)], "var_exp": 4,"skew_std": 5}
-    Edep_dict["thin_disk_PS"] = {"mean_exp": [np.log10(2),np.log10(20)], "var_exp": 4,"skew_std": 5}
+    Edep_dict["thin_disk_PS"] = {"mean_exp": [np.log10(2),np.log10(20)], "var_exp": 4,"skew_std": 5}  
 
 
     Edep_dict["Edep_psf"] = True
     p["Edep"] = Edep_dict
-
 
     # Settings for combining template maps
     ###################################
     p_comb = DotDict()
     p_comb["data_name"] = "Example_comb"  # name of data folder for the combined maps
     p_comb["filename_base"] = "Maps"  # name basis of combined map files
-    p_comb["N_val"] = 0  # number of files for the validation data set
-    p_comb["N_test"] = 0 # number of files for the testing data set
+    p_comb["N_val"] = 500  # number of files for the validation data set
+    p_comb["N_test"] = 50 # number of files for the testing data set
     # the remaining files will be used as training data
 
     # SCD histogram settings
@@ -299,7 +298,7 @@ def get_params(int_flag=0):
     p_train = DotDict()
     # Note: the batch sizes specified below set the GLOBAL batch size.
     # For example, setting p_train['batch_size'] = 256 yields n_batch = 64 on each GPU when using 4 GPUs.
-    p_train['num_steps'] = 250000 #2500    # number of steps to do (total number of maps shown is num_steps * batch_size)
+    p_train['num_steps'] = 100000 #2500    # number of steps to do (total number of maps shown is num_steps * batch_size)
     p_train['batch_size'] = 64  # number of samples per training batch. Should be a power of 2 for greater speed
     p_train['batch_size_val'] = 64  # number of samples per validation batch
     p_train['prefetch_batch_buffer'] = 5  # number of batches to prefetch for training data

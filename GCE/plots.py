@@ -233,7 +233,7 @@ def plot_flux_fractions_Ebin(params, true_ffs, preds, nptfit_ffs=None, out_file=
     return scat_fig, scat_ax
 
 
-def plot_flux_fractions_fermi(params, preds, fermi_counts, Flux=False):
+def plot_flux_fractions_fermi(params, preds, fermi_counts, Flux=False, Esquared=False):
 
     N_bins = params.data["N_bins"]
     ebins = params.data["Ebins"]
@@ -272,11 +272,18 @@ def plot_flux_fractions_fermi(params, preds, fermi_counts, Flux=False):
         pred_stds=pred_stds*flux_per_bin
         plt.ylabel("Flux")
 
+    if Esquared == True:
+        emid = 10 ** ((np.log10(ebins[1:]) + np.log10(ebins[:-1])) / 2.)
+        e_sq =emid**2
 
 
-    for temp in range(0, pred_ffs.shape[0]):
-        plt.errorbar(emid,pred_ffs[temp,:], yerr=pred_stds[temp, :])
-        plt.scatter(emid, pred_ffs[temp, :], label=model_names[temp], marker="^", alpha=0.8)
+        for temp in range(0, pred_ffs.shape[0]):
+            plt.errorbar(emid,pred_ffs[temp,:]*e_sq, yerr=pred_stds[temp, :]*e_sq)
+            plt.scatter(emid, pred_ffs[temp, :]*e_sq, label=model_names[temp], marker="^", alpha=0.8)
+    else:
+        for temp in range(0, pred_ffs.shape[0]):
+            plt.errorbar(emid,pred_ffs[temp,:], yerr=pred_stds[temp, :])
+            plt.scatter(emid, pred_ffs[temp, :], label=model_names[temp], marker="^", alpha=0.8)
 
     plt.xlabel("Energy Bin Mean")
 
