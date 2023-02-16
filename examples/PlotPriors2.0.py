@@ -101,8 +101,6 @@ plot_temps()
 plot_masks()
 plot_exposure()
 print("done")
-#Ebins kontorllieren
-#TODO PSF, I/O
 
 
 

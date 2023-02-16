@@ -233,7 +233,7 @@ def plot_flux_fractions_Ebin(params, true_ffs, preds, nptfit_ffs=None, out_file=
     return scat_fig, scat_ax
 
 
-def plot_flux_fractions_fermi(params, preds, fermi_counts, Flux=False, Esquared=False):
+def plot_flux_fractions_fermi(params, preds, fermi_counts, ind,Flux=False, Esquared=False):
 
     N_bins = params.data["N_bins"]
     ebins = params.data["Ebins"]
@@ -264,19 +264,42 @@ def plot_flux_fractions_fermi(params, preds, fermi_counts, Flux=False, Esquared=
 
     plt.ylabel("Flux Fractions")
 
-    if Flux==True:
 
-        exposure=get_exposure()
-        flux_per_bin = (fermi_counts[0]/exposure).sum(0)
-        pred_ffs=pred_ffs*flux_per_bin
-        pred_stds=pred_stds*flux_per_bin
-        plt.ylabel("Flux")
+
 
     if Esquared == True:
-        emid = 10 ** ((np.log10(ebins[1:]) + np.log10(ebins[:-1])) / 2.)
+
+        exposure=get_exposure()
+        #get counts per energy bins
+        counts_per_bin = (fermi_counts[0]).sum(0)
+        pred_ffs=pred_ffs*counts_per_bin
+        pred_stds=pred_stds*counts_per_bin
+        plt.ylabel("Flux")
+
+        #average nr. of counts on ROI
+        size_roi = hp.nside2pixarea(256)
+
+
+        ind=np.asarray(ind)
+        size_roi = size_roi*ind #* nr pixels roi
+        pred_ffs = pred_ffs/size_roi
+        pred_stds = pred_stds/size_roi
+
+        #divide mean exposure for each energy
+        pred_ffs = pred_ffs/np.mean(exposure, axis=0)
+        pred_stds = pred_stds/np.mean(exposure, axis=0)
+
+        #divide by bin width
+        de = (ebins[1:] - ebins[:-1])
+
+        pred_ffs = pred_ffs/de
+        pred_stds = pred_stds/de
+
+        #get E²
+        emid = (10**((np.log10(ebins[1:]) + np.log10(ebins[:-1]))/2.)) # *2*np.log10(Emid)
         e_sq =emid**2
 
-
+        #plot and multiply values by E²
         for temp in range(0, pred_ffs.shape[0]):
             plt.errorbar(emid,pred_ffs[temp,:]*e_sq, yerr=pred_stds[temp, :]*e_sq)
             plt.scatter(emid, pred_ffs[temp, :]*e_sq, label=model_names[temp], marker="^", alpha=0.8)
@@ -1752,7 +1775,7 @@ def plot_ff_total_with_color_flux(params,maps, true_ffs, preds, nptfit_ffs=None,
     scat_fig.text(0.02, 0.5, "Estimated", ha="center", va="center", rotation="vertical")
     plt.tight_layout()
     plt.subplots_adjust(hspace=0.0, wspace=0.0)
-    plt.show("FFTotalWithColor.png")
+    plt.savefig("FFTotalWithColor.png")
     plt.show()
 
     if out_file is not None:

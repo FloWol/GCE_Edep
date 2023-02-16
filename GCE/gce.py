@@ -1146,8 +1146,14 @@ class Analysis:
         """
         required_keys = ("mod", "nn", "plot")
         self._check_keys_exist(required_keys)
+        ind = self.template_dict["indices_roi"]
+        di = np.split(ind, np.where(np.diff(ind[:, 0]))[0] + 1)
+        ind = []
+        for i in di:
+            ind.append(i.shape[0])
+
         assert self.p.nn.ff["return_ff"], "self.p.nn.ff['return_ff'] is set to False!"
-        return plot_flux_fractions_fermi(self.p, preds, fermi_counts, **kwargs)
+        return plot_flux_fractions_fermi(self.p, preds, fermi_counts, ind, **kwargs)
 
 
     def plot_templates_scaled_ff(self, true_ffs, preds, **kwargs):

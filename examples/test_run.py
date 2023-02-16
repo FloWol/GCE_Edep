@@ -39,18 +39,18 @@ pred = gce.predict(test_data, tau=tau, multiple_taus=True)  # get the NN predict
 # #
 # #
 # gce.plot_flux_ebins_with_color_flux(test_data,test_ffs, pred)
-# abv_thresh, outlier_pred, outlier_errors, outlier_true = gce.plot_outliers(test_ffs, pred, threshold=0.11, only_errors=False,show_mapID=False)
+#abv_thresh, outlier_pred, outlier_errors, outlier_true = gce.plot_outliers(test_ffs, pred, threshold=0.11, only_errors=False,show_mapID=False)
 # gce.plot_flux_fractions_Ebin(test_ffs, pred)
 # gce.plot_flux_fractions_total(test_ffs, pred)
-# gce.plot_ebin_ff(test_ffs, pred)
+#gce.plot_ebin_ff(test_ffs, pred)
 # gce.plot_ff_ebins_with_color_flux(test_data,test_ffs, pred)
-# gce.plot_ff_total_with_color_flux(test_data,test_ffs, pred)
-# #
+#gce.plot_ff_total_with_color_flux(test_data,test_ffs, pred)
+#
 # gce.plot_templates_scaled_ff(test_ffs, pred)
 #
 # gce.plot_flux_per_Ebin(test_data, test_ffs, pred, abv_thresh[0])
 # gce.plot_ff_per_Ebin(test_ffs, pred, abv_thresh[0])
-#
+# #
 #
 
 fermi_counts=np.expand_dims(fermi_counts,0)
