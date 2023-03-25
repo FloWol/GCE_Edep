@@ -430,7 +430,7 @@ def fermi_psf(r, Ebins):
         return fcore * king_fn(r_ / spe, score, gcore) + (1 - fcore) * king_fn(r_ / spe, stail, gtail)
 
     for i in range(0, len(Ebins)-1):
-        E = (Ebins[i + 1] + Ebins[i]) / 2 #mean energy of a bin is used for the PSF
+        E = 10**((np.log10(Ebins[i + 1]) + np.log10(Ebins[i])) / 2) #mean energy of a bin is used for the PSF
 
         fcore, score, gcore, stail, gtail, spe = pk.params(5, 1, E)
 

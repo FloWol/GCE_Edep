@@ -138,7 +138,7 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
             for current_map in range(0, n_sim_per_chunk):
                 cdf = stats.skewnorm.cdf(np.log10(x), a=skew_draw_E[current_map], loc=mean_draw_E[current_map], scale=np.sqrt(var_draw_E[current_map]))
                 Energy_Sampler = CDFSampler(xvals=x,cdf=cdf)
-                E_draw = Energy_Sampler(sample_size) #PFUSCH auf logarithm aufpassen
+                E_draw = Energy_Sampler(sample_size)                                                                                                     #PFUSCH auf logarithm aufpassen
                 Eind = np.digitize(E_draw, Ebins, right=True)
                 num, counts = np.unique(Eind, return_counts=True)
 
@@ -146,7 +146,7 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
                 helper = np.zeros(len(Ebins) - 1)
                 helper[num - 1] = counts
                 c[current_map,:] = helper/sample_size
- #Test skewness 0 plotten
+
 
 
 
@@ -228,7 +228,8 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
 
     # Initialise Ray
     if t_ps:
-        os.environ['PYTHONPATH'] = ("/home/fs71636/flowolf/GCE_env/CNN_to_VSC5")
+        #change python path as this is often a source of error, most notably: ray.exceptions.RaySystemError: System error: No module named 'GCE'
+        #os.environ['PYTHONPATH'] = ("/home/fs71636/flowolf/GCE_env/CNN_to_VSC5")
         #os.environ['PYTHONPATH'] = ("/home/florianwolf/Desktop/Python3.8/Python-3.8.10/GCE_env/GCE_NN/")
         ray.init(**ray_settings)
         #ray.init(local_mode=True) #for debugging

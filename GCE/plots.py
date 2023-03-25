@@ -315,6 +315,9 @@ def plot_flux_fractions_fermi(params, preds, fermi_counts, ind,Flux=False, Esqua
     plt.legend()
     if Flux == True:
         plt.savefig("FluxFractionsFermi.png")
+        #save the flux data
+        np.save("medium_pred",  pred_ffs[:,:]*e_sq)
+        np.save("medium_std", pred_stds[:, :] * e_sq)
     else:
         plt.savefig("FluxFermi.png")
     plt.show()

@@ -177,7 +177,7 @@ def make_map(flux_arr, temp, exp, pdf_psf_sampler, Ebins, weights, upscale_nside
     #for bin in range(0, len(Ebins)-1):
     #sum_temp[265469] = sum_temp[265469]-0.0000000000000003
     inds_ps_bool = stats.multinomial.rvs(p=temp, n=n)  # boolean array: inds_PS_bool.sum() == n
-    inds_ps = np.repeat(np.arange(npix), inds_ps_bool)  # array with indices: len(inds_PS) == n
+    inds_ps = np.repeat(np.arange(npix), inds_ps_bool) # array with indices: len(inds_PS) == n
 
     #inds_ps_bin.append(inds_ps)
     # If no PSs: return at this point

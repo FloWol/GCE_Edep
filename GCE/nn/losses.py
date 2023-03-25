@@ -112,7 +112,11 @@ def max_llh_loss_var(y_true, y_pred, logvar):
     :return: max. likelihood loss (up to a constant)
     """
     logvar=tf.clip_by_value(logvar,-13.8,tf.float32.max)
-    err = y_pred - y_true
+    #compute total flux
+    F_tot = tf.math.reduce_sum(y_true, axis=1, keepdims=True)
+
+
+    err = y_pred*F_tot - y_true
     precision = tf.exp(-logvar)
     term1 = err ** 2 * precision
 
