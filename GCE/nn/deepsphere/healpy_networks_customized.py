@@ -143,7 +143,7 @@ class HealpyGCNN:
 
         # Append total counts?
         if pa["append_tot_counts"] and rel_counts:
-            t = tf.concat([t, tf.math.log(tf.squeeze(tot_counts, 2)) / 2.302], axis=1)  # 2.3026 ~ log_e(10)  #Pfusch 2 war 1 aber transponiert jetzt
+            t = tf.concat([t, tf.math.log(tf.squeeze(tot_counts, 2)) / 2.302], axis=1)  # 2.3026 ~ log_e(10)
 
         # If Earth Mover's pinball loss: append tau at this point
         # We use the scaling proposed by

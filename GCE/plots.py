@@ -115,7 +115,7 @@ def plot_flux_fractions_Ebin(params, true_ffs, preds, nptfit_ffs=None, out_file=
     n_row = n_models
 
     if figsize is None:
-        figsize = (n_col * 3.5, n_row * 3.25)
+        figsize = (n_col * 3.6, n_row * 3.3)
 
     if ticks is None:
         ticks = [0, 0.2, 0.4, 0.6, 0.8]
@@ -214,10 +214,16 @@ def plot_flux_fractions_Ebin(params, true_ffs, preds, nptfit_ffs=None, out_file=
 
 
 
-    scat_fig.text(0.5, 0.025, "True", ha="center", va="center")
-    scat_fig.text(0.02, 0.5, "Estimated", ha="center", va="center", rotation="vertical")
+    scat_fig.text(0.1, 0.5, "Estimated",
+             ha='left', va='center', rotation='vertical')
+
+    # Add the "True" text to the bottom of the entire plot
+    scat_fig.text(0.5, 0.01, "True",
+             ha='center', va='bottom')
+    #scat_fig.text(0.5, 0.025, "True", ha="center", va="center")
+    #scat_fig.text(0.02, 0.5, "Estimated", ha="center", va="center", rotation="vertical")
+    plt.subplots_adjust(hspace=0.2, wspace=0.2)
     plt.tight_layout()
-    plt.subplots_adjust(hspace=0.0, wspace=0.0)
     if save == True:
         plt.savefig("FluxFractionsEnergyBins.png")
         plt.show()
@@ -329,7 +335,7 @@ def plot_flux_fractions_total(params, true_ffs, preds, nptfit_ffs=None, out_file
                              ms_nptfit=6,
                              alpha=0.4, lw=0.8, lw_nptfit=1.6, ecolor=None, ticks=None, figsize=None):
     """
-    Make an error plot of the NN flux fraction predictions.
+    Make an error plot of the NN flux fraction predictions, but summed over the Ebins dimension.
     :param params: parameter dictionary
     :param true_ffs: true flux fraction labels
     :param preds: NN estimates (output dictionary)
@@ -1427,9 +1433,9 @@ def plot_ff_ebins_with_color_flux(params,maps, true_ffs, preds, nptfit_ffs=None,
             ax.text(0.03, 0.97, model_names[i_ax], va="top", ha="left")
 
     scat_fig.text(0.5, 0.025, "True", ha="center", va="center")
-    scat_fig.text(0.02, 0.5, "Estimated", ha="center", va="center", rotation="vertical")
+    scat_fig.text(0.05, 0.5, "Estimated", ha="center", va="center", rotation="vertical")
     plt.tight_layout()
-    plt.subplots_adjust(hspace=0.0, wspace=0.0)
+    plt.subplots_adjust(hspace=0.2, wspace=0.2)
     plt.savefig("FF_Ebins_ColorFlux.png")
     plt.show()
 
@@ -1488,7 +1494,7 @@ def plot_flux_ebins_with_color_flux(params,maps, true_ffs, preds, nptfit_ffs=Non
     if "ff_logvar" in preds.keys():
         if isinstance(preds["ff_logvar"], np.ndarray):
             pred_stds = np.exp(0.5 * preds["ff_logvar"])
-        else:
+        elif ~isinstance(preds["ff_logvar"], np.ndarray):
             pred_stds = np.exp(0.5 * preds["ff_logvar"].numpy())
     elif "ff_covar" in preds.keys():
         pred_stds = np.sqrt(np.asarray([np.diag(c) for c in preds["ff_covar"].numpy()]))
@@ -1553,14 +1559,17 @@ def plot_flux_ebins_with_color_flux(params,maps, true_ffs, preds, nptfit_ffs=Non
     for i_ax in range(n_row):  # , ax in enumerate(scat_ax.flatten(), start=0)
         for ebin in range(0, n_col):
             ax = scat_ax[i_ax][ebin]
+            scale = max(true_ffs[:, i_ax, ebin])
+            ax.text(0.05, 0.95, model_names[i_ax], va="top", ha="left", transform=ax.transAxes)
             if nptfit_ffs is not None:
                 ax.scatter(true_ffs[:, i_ax], nptfit_ffs[:, i_ax], s=ms_nptfit ** 2, c="1.0", marker=marker_nptf,
                            lw=lw_nptfit, alpha=alpha, edgecolor="k", zorder=2, label="NPTFit")
             if pred_stds is None:
-                ax.scatter(true_ffs[:, i_ax], pred_ffs[:, i_ax], s=ms ** 2, c=colors[i_ax], marker=marker,
+                ax.scatter(true_ffs[:, i_ax, ebin], pred_ffs[:, i_ax, ebin]*total_flux_per_bin_per_map[:,ebin], s=ms ** 2, c=colors[i_ax], marker=marker,
                            lw=lw, alpha=alpha, edgecolor="k", zorder=3, label="NN")
             else:
-                ax.errorbar(x=true_ffs[:, i_ax, ebin]*total_flux_per_bin_per_map[:,ebin], y=pred_ffs[:, i_ax, ebin]*total_flux_per_bin_per_map[:,ebin]
+                ax.text(0.05, 0.95, model_names[i_ax], va="top", ha="left", transform=ax.transAxes)
+                ax.errorbar(x=true_ffs[:, i_ax, ebin], y=pred_ffs[:, i_ax, ebin]*total_flux_per_bin_per_map[:,ebin]
                             , fmt=marker, ms=0,
                                 mfc=colors[i_ax],
                                 mec="k", lw=lw, alpha=alpha, zorder=3, label="NN",
@@ -1568,17 +1577,17 @@ def plot_flux_ebins_with_color_flux(params,maps, true_ffs, preds, nptfit_ffs=Non
 
 
                 if full_color == True:
-                    ax.scatter(x=true_ffs[:, i_ax, ebin]*total_flux_per_bin_per_map[:,ebin], y=pred_ffs[:, i_ax, ebin]*total_flux_per_bin_per_map[:,ebin],
+                    ax.scatter(x=true_ffs[:, i_ax, ebin], y=pred_ffs[:, i_ax, ebin]*total_flux_per_bin_per_map[:,ebin],
                          c=true_flux[:, i_ax, ebin], vmin=true_flux.min(), vmax=true_flux.max()/3, cmap="viridis",  alpha=alpha, zorder=3, label="NN") #vmin=true_flux.min(), vmax=true_flux.max()/10,
                 #plt.colorbar(scat_fig)
                 else:
-                    ax.scatter(x=true_ffs[:, i_ax, ebin] * total_flux_per_bin_per_map[:, ebin],
+                    ax.scatter(x=true_ffs[:, i_ax, ebin],
                                y=pred_ffs[:, i_ax, ebin] * total_flux_per_bin_per_map[:, ebin],
                                c=true_flux[:, i_ax, ebin],
                                cmap="viridis", alpha=alpha, zorder=3,
                                label="NN")  # vmin=true_flux.min(), vmax=true_flux.max()/10,
 
-                scale = max(true_ffs[:, i_ax, ebin]*total_flux_per_bin_per_map[:,ebin])
+
 
 
             if i_ax == 0 and legend:
@@ -1588,16 +1597,18 @@ def plot_flux_ebins_with_color_flux(params,maps, true_ffs, preds, nptfit_ffs=Non
             if show_stats:
                 ax.text(0.62, 0.14 + delta_y, r"$\it{Mean}$", ha="center", va="center", size=12)
                 ax.text(0.62, 0.07 + delta_y, "{:.2f}%".format(mean_abs_error_temp_Ebin[i_ax, ebin] * 100), ha="center",
-                        va="center",
-                        color=colors[i_ax], size=12)
+                            va="center",
+                            color=colors[i_ax], size=12)
+
             ax.set_xlim([0, scale+0.1*scale])
             ax.set_ylim([0, scale+0.1*scale])
-            ax.text(0.03, 0.97, model_names[i_ax], va="top", ha="left")
 
-    scat_fig.text(0.5, 0.025, "True", ha="center", va="center")
-    scat_fig.text(0.02, 0.5, "Estimated", ha="center", va="center", rotation="vertical")
+
+
+    scat_fig.text(0.5, 0.05, "True", ha="center", va="center")
+    scat_fig.text(0.1, 0.5, "Estimated", ha="center", va="center", rotation="vertical")
+    plt.subplots_adjust(hspace=0.2, wspace=0.2)
     plt.tight_layout()
-    plt.subplots_adjust(hspace=0.5, wspace=0.5)
     plt.savefig("FluxWithColor.png")
     plt.show()
 
@@ -1674,7 +1685,7 @@ def plot_ff_total_with_color_flux(params,maps, true_ffs, preds, nptfit_ffs=None,
     n_row = int(np.ceil(n_models / n_col))
 
     if figsize is None:
-        figsize = (n_col * 3.5, n_row * 3.25)
+        figsize = (n_col * 3.6, n_row * 3.3)
 
     if ticks is None:
         ticks = [0, 0.2, 0.4, 0.6, 0.8]

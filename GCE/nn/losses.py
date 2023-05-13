@@ -21,7 +21,7 @@ def get_loss_and_keys(which, params, ff_means_only=False):
     return loss, loss_keys
 
 
-def get_loss_and_keys_flux_fractions(ff_loss_str, do_var=False, do_covar=False):
+def get_loss_and_keys_flux_fractions(ff_loss_str, do_var=False, do_covar=False, flux_loss=False): #TODO implement toggle for flux_loss
     """
     Returns the loss function for the flux fraction estimation.
     :param ff_loss_str: : string specifying histogram loss
@@ -38,10 +38,19 @@ def get_loss_and_keys_flux_fractions(ff_loss_str, do_var=False, do_covar=False):
             loss = max_llh_loss_covar
             loss_keys = ["ff_mean", "ff_covar"]
         elif do_var:
-            loss = max_llh_loss_var
-            loss_keys = ["ff_mean", "ff_logvar"]
+            if flux_loss == False:
+                loss = max_llh_loss_var_Flux_Fractions
+                loss_keys = ["ff_mean", "ff_logvar"]
+            else:
+                loss = max_llh_loss_var_Flux
+                loss_keys = ["ff_mean", "ff_logvar"]
         else:
-            loss = lambda y_true, y_pred: tf.reduce_mean(tf.reduce_mean((y_true - y_pred) ** 2, 2), 1)
+            def flux_l2_loss(y_true, y_pred):
+                F_tot_bin = tf.math.reduce_sum(y_true, axis=1, keepdims=True)  # (maps x 1(Template) x Ebin) -> Flux in Ebin
+                F_tot = tf.math.reduce_sum(F_tot_bin, axis=2, keepdims=True)  # (maps x 1 (Template) x 1 (Ebin))
+                return tf.reduce_mean(tf.reduce_mean((y_true / F_tot - y_pred * F_tot_bin / F_tot) ** 2, 2), 1)
+
+            loss = flux_l2_loss
             loss_keys = ["ff_mean"]
     elif ff_loss_str.lower() in ["l1", "mae"]:
         loss = tf.keras.losses.mae
@@ -103,7 +112,7 @@ def max_llh_loss_covar(y_true, y_pred, covar, eps=None):
     return max_llh_loss
 
 
-def max_llh_loss_var(y_true, y_pred, logvar):
+def max_llh_loss_var_Flux(y_true, y_pred, logvar):
     """
     (Neg.) maximum likelihood loss function for a diagonal Gaussian covariance matrix.
     :param y_true: label
@@ -111,12 +120,13 @@ def max_llh_loss_var(y_true, y_pred, logvar):
     :param logvar: uncertainty log-variances
     :return: max. likelihood loss (up to a constant)
     """
-    logvar=tf.clip_by_value(logvar,-13.8,tf.float32.max)
+    #logvar=tf.clip_by_value(logvar,-13.8,tf.float32.max)
     #compute total flux
-    F_tot = tf.math.reduce_sum(y_true, axis=1, keepdims=True)
+    F_tot_bin = tf.math.reduce_sum(y_true, axis=1, keepdims=True) #(maps x 1(Template) x Ebin) -> Flux in Ebin
+    F_tot = tf.math.reduce_sum(F_tot_bin, axis=2, keepdims=True) # (maps x 1 (Template) x 1 (Ebin))
 
 
-    err = y_pred*F_tot - y_true
+    err = y_pred*F_tot_bin/F_tot - y_true/F_tot
     precision = tf.exp(-logvar)
     term1 = err ** 2 * precision
 
@@ -124,6 +134,40 @@ def max_llh_loss_var(y_true, y_pred, logvar):
     max_llh_loss = tf.reduce_sum(term1 + term2, 1) / 2.0
     max_llh_loss = tf.reduce_sum(max_llh_loss, 1)
     return max_llh_loss
+#TODO l2 loss
+
+def max_llh_loss_var_Flux_Fractions(y_true, y_pred, logvar):
+    """
+    (Neg.) maximum likelihood loss function for a diagonal Gaussian covariance matrix.
+    :param y_true: label
+    :param y_pred: prediction
+    :param logvar: uncertainty log-variances
+    :return: max. likelihood loss (up to a constant)
+    """
+    #logvar=tf.clip_by_value(logvar,-13.8,tf.float32.max)
+    #compute total flux
+    F_tot_bin = tf.math.reduce_sum(y_true, axis=1, keepdims=True) #(maps x 1(Template) x Ebin) -> Flux in Ebin
+    F_tot = tf.math.reduce_sum(F_tot_bin, axis=2, keepdims=True) # (maps x 1 (Template) x 1 (Ebin))
+
+
+    err = y_pred - y_true/F_tot_bin
+    precision = tf.exp(-logvar)
+    term1 = err ** 2 * precision
+
+    term2 = logvar
+    max_llh_loss = tf.reduce_sum(term1 + term2, 1) / 2.0
+    max_llh_loss = tf.reduce_sum(max_llh_loss, 1)
+    return max_llh_loss
+
+    # print("pred")
+    # pred_red=tf.math.reduce_sum(y_pred * F_tot_bin / F_tot, axis=1)
+    # pred_red= tf.math.reduce_sum(pred_red, axis=1)
+    # tf.print(pred_red)
+    # print("True")
+    # pred_red
+    # pred_red=tf.math.reduce_sum(y_true/F_tot, axis=1)
+    # pred_red= tf.math.reduce_sum(pred_red, axis=1)
+    # tf.print(pred_red)
 
 
 ############################

@@ -39,8 +39,8 @@ class PDFSampler:
         """
         # Random draw from a uniform, up to max of the cdf, which need
         # not be 1 as the pdf does not have to be normalised
-        #print("Psamples shape: " + str(samples.shape) + "samples: " + str(samples[:10]))
-        unidraw = np.random.uniform(low=self.cdf[0], high=self.cdf[-1], size=samples) #Pfusch low ist nicht mehr 0.0 (default) sondern lowest cdf nr
-        cdfdraw = np.searchsorted(self.cdf, unidraw) #gibt indizes von cdf aus wo unidraw werte sind
-        cdfdraw = self.sortxvals[cdfdraw] #sucht index xwerte von den gezogenen cdf values
-        return self.xvals[cdfdraw]  #xwerte für die dazugehörigen cdf werte
+
+        unidraw = np.random.uniform(low=self.cdf[0], high=self.cdf[-1], size=samples) #Note that low is now the lowest value of the cdf instead of 0
+        cdfdraw = np.searchsorted(self.cdf, unidraw) #returns indices of cdf where the unidraw values are found
+        cdfdraw = self.sortxvals[cdfdraw] #searches indices for x values with respect to the drawn cdf values
+        return self.xvals[cdfdraw]  #xvalues according to the cdf values

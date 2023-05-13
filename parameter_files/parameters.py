@@ -99,7 +99,7 @@ def get_params(int_flag=0):
     p_gen["fermi_root"] = os.path.join(p_gen["data_root"], "fermi_data_edep")  # root folder containing Fermi data
     p_gen["template_maps_root"] = os.path.join(p_gen["data_root"], "Template_maps")  # folder for template maps
     p_gen["combined_maps_root"] = os.path.join(p_gen["data_root"], "Combined_maps")  # folder for combined maps
-    p_gen["models_root"] = "../models_new_loss"  # folder for models
+    p_gen["models_root"] = "../modelsworking"  # folder for models
     # Note: the Fermi root folder should have a subfolder "fermi_data_<NSIDE>", where <NSIDE> = p["nside"] (see below)
     p["gen"] = p_gen
 
@@ -148,8 +148,8 @@ def get_params(int_flag=0):
     p_tt["data_name"] = "Example"  # name of data folder for the template maps
     p_tt["filename_base"] = "Maps"  # name basis of template map files
     p_tt["poisson_A_is_log"] = False  # is log10(A) rather than A specified for the Poissonian templates in prior_dict?
-    p_tt["n_chunk"] = int(5)  # number of chunks to compute per job
-    p_tt["n_sim_per_chunk"] = int(10)  # number of simulations per chunk and per model (one output file per chunk)
+    p_tt["n_chunk"] = int(3)  # number of chunks to compute per job
+    p_tt["n_sim_per_chunk"] = int(100)  # number of simulations per chunk and per model (one output file per chunk)
     # Note: the total number of maps for each template will be "n_chunk" * "n_sim_per_chunk" (* # jobs)
     p_tt["add_two_temps_PS"] = ["gce_12_PS"]  # list of PS templates for which TWICE the number of maps will be generated.
     # Later, these maps can be added pairwise, modeling two distinct populations.
@@ -208,10 +208,10 @@ def get_params(int_flag=0):
     # Settings for combining template maps
     ###################################
     p_comb = DotDict()
-    p_comb["data_name"] = "Best_fit_maps/Medium_comb"  # name of data folder for the combined maps
+    p_comb["data_name"] = "Example_comb"  # name of data folder for the combined maps
     p_comb["filename_base"] = "Maps"  # name basis of combined map files
-    p_comb["N_val"] = 0  # number of files for the validation data set
-    p_comb["N_test"] = 0 # number of files for the testing data set
+    p_comb["N_val"] = 1 # number of files for the validation data set
+    p_comb["N_test"] = 1 # number of files for the testing data set
     # the remaining files will be used as training data
 
     # SCD histogram settings
@@ -298,9 +298,9 @@ def get_params(int_flag=0):
     p_train = DotDict()
     # Note: the batch sizes specified below set the GLOBAL batch size.
     # For example, setting p_train['batch_size'] = 256 yields n_batch = 64 on each GPU when using 4 GPUs.
-    p_train['num_steps'] = 2 # number of steps to do (total number of maps shown is num_steps * batch_size)
-    p_train['batch_size'] = 64 # number of samples per training batch. Should be a power of 2 for greater speed
-    p_train['batch_size_val'] = 64  # number of samples per validation batch
+    p_train['num_steps'] = 205 # number of steps to do (total number of maps shown is num_steps * batch_size)
+    p_train['batch_size'] = 32 # number of samples per training batch. Should be a power of 2 for greater speed
+    p_train['batch_size_val'] = 32  # number of samples per validation batch
     p_train['prefetch_batch_buffer'] = 5  # number of batches to prefetch for training data
     p_train['prefetch_batch_buffer_val'] = 5  # number of batches to prefetch for validation data
     p_train['eval_frequency'] = 1000  # frequency of model evaluations during training (influences training time!)

@@ -137,7 +137,7 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
 
             for current_map in range(0, n_sim_per_chunk):
                 cdf = stats.skewnorm.cdf(np.log10(x), a=skew_draw_E[current_map], loc=mean_draw_E[current_map], scale=np.sqrt(var_draw_E[current_map]))
-                Energy_Sampler = CDFSampler(xvals=x,cdf=cdf)
+                Energy_Sampler = CDFSampler(xvals=x,cdf=cdf) #TODO use mean energies
                 E_draw = Energy_Sampler(sample_size)                                                                                                     #PFUSCH auf logarithm aufpassen
                 Eind = np.digitize(E_draw, Ebins, right=True)
                 num, counts = np.unique(Eind, return_counts=True)
@@ -210,7 +210,8 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
                 plt.ioff()
                 hp.mollview(t_masked.sum(1), title="Template (exposure-corrected)", nest=True)
                 hp.mollview(exp.sum(1), title="Exposure (nside = " + str(nside) + ")", nest=True)
-                hp.mollview(total_mask_neg[:,0], title="Mask (" + str(mask_type) + ")", nest=True)
+                r=26
+                hp.cartview(total_mask_neg_safety, lonra=[-r, r], latra=[-r, r],title="Mask (" + str(mask_type) + ")", nest=True)
                 # for i in range(n_example_plots):
                 #     map_to_plot=sim_maps.sum(2)
                 #     hp.mollview(masked_to_full(map_to_plot[i, :], indices_roi_bins, nside=nside), # indices_roi_bins statt indices_roi
@@ -301,7 +302,7 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
             t_masked = t * (1 - total_mask_neg_safety)[:, np.newaxis]
 
             # Correct flux limit priors for larger mask (after simulating the counts, ROI mask will be applied)
-            flux_corr_fac = np.mean(t_masked.sum(0) / ((t * (1 - total_mask_neg))).sum(0)) #PFUSCH ??
+            flux_corr_fac = np.mean(t_masked.sum(0) / ((t * (1 - total_mask_neg))).sum(0))
             flux_lims_corr = [None] * 2
             for i in range(2):
                 if prior_dict[temp]["flux_log"]:
@@ -380,7 +381,7 @@ def generate_template_maps(params, temp_dict, ray_settings, n_example_plots, job
                 sim_maps = np.asarray(sim_maps)
 
                 # Apply ROI mask again and cut off counts outside ROI
-                sim_maps = np.asarray(sim_maps) * np.expand_dims((1 - total_mask_neg), [0])
+                sim_maps = np.asarray(sim_maps) * np.expand_dims((1 - total_mask_neg), [0]) #now edep mask is applied before we only applied the safety mask
 
                 # The following assert is for the scenario where there is NO leakage INTO the ROI, and counts leaking
                 # OUT OF the ROI are deleted from photon-count list n_phot

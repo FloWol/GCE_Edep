@@ -494,7 +494,7 @@ class Analysis:
 
         self.template_dict = temp_dict
 
-    def generate_template_maps(self, ray_settings, n_example_plots=5, job_id=0):
+    def generate_template_maps(self, ray_settings, n_example_plots=5, job_id=0, force_even_if_exists=False):
         """
         Generate simulated template maps that can later be combined for training, validation, and testing.
         :param ray_settings: settings passed to ray when calling ray.init()
@@ -511,7 +511,7 @@ class Analysis:
         # Check if data exists already
         if os.path.isdir(self.p.gen["template_maps_folder"]):
             template_folder_content = os.listdir(self.p.gen["template_maps_folder"])
-            if np.any(["params" in filename and filename.endswith(".pickle") for filename in template_folder_content]):
+            if np.any(["params" in filename and filename.endswith(".pickle") for filename in template_folder_content]) and not force_even_if_exists:
                 print("Template maps exist already!")
                 return
 

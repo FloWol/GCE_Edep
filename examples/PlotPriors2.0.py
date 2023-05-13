@@ -21,7 +21,7 @@ fermi_iso=np.load("/home/flo/GCE_NN/data/fermi_data_edep/fermi_data_256/template
 fermi_pibs=np.load("/home/flo/GCE_NN/data/fermi_data_edep/fermi_data_256/template_Opi.npy")
 fermi_ic=np.load("/home/flo/GCE_NN/data/fermi_data_edep/fermi_data_256/template_Oic.npy")
 fermi_disk=np.load("/home/flo/GCE_NN/data/fermi_data_edep/fermi_data_256/template_dsk_z0p3.npy")
-
+Ebins=gce.p.data["Ebins"]
 
 
 templates=[fermi_pibs,fermi_ic,fermi_iso,fermi_bub,fermi_gce,fermi_disk]
@@ -43,10 +43,10 @@ def plot_temps(moll=True):
             for ebin in range(0,n_col):
                 if row < 2:
                     #hp.mollview(templates[row][ebin],sub=(6,10,subplot))
-                    hp.mollview(templates[row][ebin], title=names[row])
+                    hp.mollview(templates[row][ebin], title=names[row] + " " + str(np.round(Ebins[ebin],decimals=2)) +" GeV")
                 else:
                     hp.mollview(templates[row][10+ebin], title=names[row])
-                plt.savefig("moll "+str(names[row])+" Ebin "+str(ebin)+".png")
+                plt.savefig("moll "+str(names[row])+ str(np.round(Ebins[ebin],decimals=2)) +" GeV.png")
             plt.show()
 
     else:
@@ -55,10 +55,10 @@ def plot_temps(moll=True):
                 if row < 2:
                     #hp.mollview(templates[row][ebin],sub=(6,10,subplot))
                     hp.cartview(templates[row][ebin],
-                                lonra=[-r, r], latra=[-r, r], title=names[row])
+                                lonra=[-r, r], latra=[-r, r], title=names[row] + " " +str(np.round(Ebins[ebin],decimals=2)) +" GeV")
                 else:
-                    hp.cartview(templates[row][10+ebin],
-                                lonra=[-r, r], latra=[-r, r], title=names[row])
+                    hp.cartview(templates[row][10+ebin], margins=None,
+                                lonra=[-r, r], latra=[-r, r], title=names[row]+ " " +str(np.round(Ebins[ebin],decimals=2)) +" GeV")
                 plt.savefig("cart "+str(names[row])+" Ebin "+str(ebin)+".png")
             plt.show()
 
@@ -67,13 +67,13 @@ def plot_masks(moll=True):
     n_col = 10
     if moll==True:
         for ebin in range(0,n_col):
-            hp.mollview(fermi_mask[10+ebin], title="Moll Mask Ebin "+str(ebin))
+            hp.mollview(fermi_mask[10+ebin], title="Moll Mask Ebin "+str(np.round(Ebins[ebin],decimals=2)) +" GeV")
             plt.savefig("moll Mask Ebin "+str(ebin)+".png")
             plt.show()
 
     else:
         for ebin in range(0,n_col):
-            hp.cartview(fermi_mask[10+ebin], title="Cart Mask Ebin "+str(ebin))
+            hp.cartview(fermi_mask[10+ebin], lonra=[-r, r], latra=[-r, r], title="Cart Mask Ebin "+str(np.round(Ebins[ebin],decimals=2)) +" GeV")
             plt.savefig("Cart Mask Ebin "+str(ebin)+".png")
 
             plt.show()
@@ -82,13 +82,13 @@ def plot_exposure(moll=True):
     n_col = 10
     if moll==True:
         for ebin in range(0,n_col):
-            hp.mollview(fermi_exposure[10+ebin], title="Moll Exp Ebin "+str(ebin))
+            hp.mollview(fermi_exposure[10+ebin], title="Moll Exp Ebin "+str(np.round(Ebins[ebin],decimals=2)) +" GeV")
             plt.savefig("moll Exp Ebin "+str(ebin)+".png")
             plt.show()
 
     else:
         for ebin in range(0,n_col):
-            hp.cartview(fermi_exposure[10+ebin], title="Cart Exp Ebin "+str(ebin))
+            hp.cartview(fermi_exposure[10+ebin], lonra=[-r, r], latra=[-r, r], title="Cart Exp Ebin "+str(np.round(Ebins[ebin],decimals=2)) +" GeV")
             plt.savefig("Cart Exp Ebin "+str(ebin)+".png")
 
             plt.show()

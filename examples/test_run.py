@@ -12,52 +12,52 @@ gce.load_params("../parameter_files/parameters.py")
 #gce.psf_make_map("gce_12_PS")
 
 
-#ray_settings = {"num_cpus": 4}  # select the number of CPUs here
-#gce.generate_template_maps(ray_settings, n_example_plots=0, job_id=0)
+#ray_settings = {"num_cpus": 8}  # select the number of CPUs here
+#gce.generate_template_maps(ray_settings, n_example_plots=1, job_id=0)
 
 #gce.combine_template_maps(save_filenames=True, do_combine=True)
-
+print(tf.config.list_physical_devices('GPU'))
 gce.build_pipeline()
-#fermi_counts = gce.datasets["test"].get_fermi_counts()
-#
-# n_samples = 50
-# test_samples = gce.datasets["train"].get_samples(n_samples)
-# test_data, test_ffs, test_hists = test_samples["data"], test_samples["label"][0], test_samples["label"][0]
-# tau = np.arange(5, 100, 5) * 0.01  # quantile levels for SCD histograms, from 5% to 95% in steps of 5%
-# # gce.plot_mean_spectra(test_data)
-# gce.plot_mean_spectra_template(test_data)
-#gce.plot_spectra(test_data)
-
 gce.build_nn()
 
 gce.train_nn("flux_fractions")
 #gce.load_nn()
 
+fermi_counts = gce.datasets["test"].get_fermi_counts()
+#
+n_samples = 50
+test_samples = gce.datasets["train"].get_samples(n_samples)
+test_data, test_ffs, test_hists = test_samples["data"], test_samples["label"][0], test_samples["label"][0]
+tau = np.arange(5, 100, 5) * 0.01  # quantile levels for SCD histograms, from 5% to 95% in steps of 5%
+# gce.plot_mean_spectra(test_data)
+#gce.plot_mean_spectra_template(test_data)
+#gce.plot_spectra(test_data)
 
-# pred = gce.predict(test_data, tau=tau, multiple_taus=True)  # get the NN predictions
-# #
-# # #
-# # #
-# # gce.plot_flux_ebins_with_color_flux(test_data,test_ffs, pred)
-# #abv_thresh, outlier_pred, outlier_errors, outlier_true = gce.plot_outliers(test_ffs, pred, threshold=0.11, only_errors=False,show_mapID=False)
-# # gce.plot_flux_fractions_Ebin(test_ffs, pred)
-# # gce.plot_flux_fractions_total(test_ffs, pred)
-# #gce.plot_ebin_ff(test_ffs, pred)
-# # gce.plot_ff_ebins_with_color_flux(test_data,test_ffs, pred)
-# #gce.plot_ff_total_with_color_flux(test_data,test_ffs, pred)
-# #
-# # gce.plot_templates_scaled_ff(test_ffs, pred)
-# #
-# # gce.plot_flux_per_Ebin(test_data, test_ffs, pred, abv_thresh[0])
-# # gce.plot_ff_per_Ebin(test_ffs, pred, abv_thresh[0])
-# # #
+
+
+
+pred = gce.predict(test_data, tau=tau, multiple_taus=True)  # get the NN predictions
+
+gce.plot_flux_ebins_with_color_flux(test_data,test_ffs, pred)
+abv_thresh, outlier_pred, outlier_errors, outlier_true = gce.plot_outliers(test_ffs, pred, threshold=0.11, only_errors=False,show_mapID=False)
+gce.plot_flux_fractions_Ebin(test_ffs, pred)
+gce.plot_flux_fractions_total(test_ffs, pred)
+gce.plot_ebin_ff(test_ffs, pred)
+#gce.plot_ff_ebins_with_color_flux(test_data,test_ffs, pred)
+#gce.plot_ff_total_with_color_flux(test_data,test_ffs, pred)
+#
+gce.plot_templates_scaled_ff(test_ffs, pred)
+#
+gce.plot_flux_per_Ebin(test_data, test_ffs, pred, abv_thresh[0])
+gce.plot_ff_per_Ebin(test_ffs, pred, abv_thresh[0])
+# # # #
 # #
 #
-# fermi_counts=np.expand_dims(fermi_counts,0)
-# pred = gce.predict(fermi_counts, tau=tau, multiple_taus=True)
-# gce.plot_flux_fractions_fermi(pred,fermi_counts,  Flux=True, Esquared=True)
-# np.save("fermi_pred" ,pred)
-#gce.plot_flux_fractions_fermi(pred, fermi_counts)
+fermi_counts=np.expand_dims(fermi_counts,0)
+pred = gce.predict(fermi_counts, tau=tau, multiple_taus=True)
+gce.plot_flux_fractions_fermi(pred,fermi_counts,  Flux=True, Esquared=True)
+np.save("fermi_pred" ,pred)
+gce.plot_flux_fractions_fermi(pred, fermi_counts)
 
 
 
